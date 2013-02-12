@@ -4,3 +4,12 @@
 *.jar
 *.war
 *.ear
+*.log
+
+# Mac Files
+.DS_Store
+*.classpath
+*.project
+
+PA1/pa1_framework/bin/
+PA1/pa1_framework/src/textures/
