@@ -224,8 +224,22 @@ void main()
 		/* Unshaded material is just a constant color. */
 		gl_FragColor.rgb = diffuse;
 	}
-	// TODO PA1: Add logic to handle all other material IDs. Remember to loop over all NumLights.
 	
+	// TODO PA1: Add logic to handle all other material IDs. Remember to loop over all NumLights.
+	else if (materialID == LAMBERTIAN_MATERIAL_ID)
+	{
+		for (int i = 0; i < NumLights; i++) {
+		 	gl_FragColor.rgb += shadeLambertian(diffuse, position, normal, LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
+		
+	}
+	else if (materialID == BLINNPHONG_MATERIAL_ID)
+	{
+		for (int i = 0; i < NumLights; i++) {
+			gl_FragColor.rgb += shadeBlinnPhong(diffuse, materialParams1.gba, materialParams2.x, position, normal,
+				LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
+	}
 	
 	
 	else
