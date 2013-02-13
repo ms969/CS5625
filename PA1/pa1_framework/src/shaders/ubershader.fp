@@ -245,8 +245,11 @@ void main()
 			gl_FragColor.rgb += shadeCookTorrance(diffuse, specular, m, n, position, normal,
 				LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
-	} 
+	} else if (materialID == ISOTROPIC_WARD_MATERIAL_ID) {
+		vec3 specular = materialParams1.gba;
+		float alpha = materialParams2.x;
 		for (int i = 0; i < NumLights; i++) {
+			gl_FragColor.rgb += shadeIsotropicWard(diffuse, specular, alpha, position, normal,
 				LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
 	}
