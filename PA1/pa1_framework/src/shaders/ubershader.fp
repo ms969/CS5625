@@ -226,17 +226,27 @@ void main()
 	}
 	
 	// TODO PA1: Add logic to handle all other material IDs. Remember to loop over all NumLights.
-	else if (materialID == LAMBERTIAN_MATERIAL_ID)
-	{
+	else if (materialID == LAMBERTIAN_MATERIAL_ID) {
 		for (int i = 0; i < NumLights; i++) {
 		 	gl_FragColor.rgb += shadeLambertian(diffuse, position, normal, LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
-		
-	}
-	else if (materialID == BLINNPHONG_MATERIAL_ID)
-	{
+	} else if (materialID == BLINNPHONG_MATERIAL_ID) {
+		vec3 specular = materialParams1.gba;
+		float n = materialParams2.x;
 		for (int i = 0; i < NumLights; i++) {
-			gl_FragColor.rgb += shadeBlinnPhong(diffuse, materialParams1.gba, materialParams2.x, position, normal,
+			gl_FragColor.rgb += shadeBlinnPhong(diffuse, specular, n, position, normal,
+				LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
+	} else if (materialID == COOKTORRANCE_MATERIAL_ID) {
+		vec3 specular = materialParams1.gba;
+		float m = materialParams2.x;
+		float n = materialParams2.y;
+		for (int i = 0; i < NumLights; i++) {
+			gl_FragColor.rgb += shadeCookTorrance(diffuse, specular, m, n, position, normal,
+				LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
+	} 
+		for (int i = 0; i < NumLights; i++) {
 				LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
 	}
