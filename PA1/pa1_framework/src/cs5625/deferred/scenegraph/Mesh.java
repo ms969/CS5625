@@ -7,6 +7,7 @@ import java.util.HashMap;
 import javax.media.opengl.GL2;
 import javax.vecmath.GMatrix;
 import javax.vecmath.GVector;
+import javax.vecmath.Matrix3f;
 import javax.vecmath.Vector3f;
 
 import com.jogamp.common.nio.Buffers;
@@ -93,8 +94,8 @@ public abstract class Mesh implements OpenGLResourceObject
 
 		/* TODO PA1: Construct the Q matrix */
 		GMatrix matQ = new GMatrix(2, 3);
-
-		
+		matQ.setRow(0, new GVector(q1));
+		matQ.setRow(1, new GVector(q2));
 		
 		/* Get texture coordinates relative to the first vertex. */
         float s1 = u2 - u1;
@@ -112,7 +113,12 @@ public abstract class Mesh implements OpenGLResourceObject
 		 * tangent and bitangent vectors as explained on Lengyel's site. */       
 		GVector tangent = new GVector(3);
 		GVector bi_tangent = new GVector(3);
-		
+		GMatrix st_inv = new GMatrix(2, 2, new double[] {s1, t1, s2, t2});
+		st_inv.invert();
+		GMatrix result = new GMatrix(2, 3);
+		result.mul(st_inv, matQ);
+		result.getRow(0, tangent);
+		result.getRow(1, bi_tangent);
 		
 		
 		/* Accumulate into temporary arrays. */
@@ -182,14 +188,39 @@ public abstract class Mesh implements OpenGLResourceObject
 			bitangent.normalize();
 			
 			/* TODO PA1: Orthogonalize and normalize (aka. create orthonormal basis), based on
-			 * the current normal and tangent vectors, as explained on Lengyel's site. */   
+			 * the current normal and tangent vectors, as explained on Lengyel's site. */  
+			
+			// T' = T-(N dot T)N
 			Vector3f tangent_orth = new Vector3f();
+			float n_dot_t = normal.dot(tangent);
+			Vector3f normal_s = new Vector3f();
+			normal_s.scale(n_dot_t, normal);
+			tangent_orth.sub(tangent, normal_s);
+			tangent_orth.normalize();
 			
+			// B' = B - (N dot B)N - (T' dot B)T'/T'^2
+			Vector3f bitan_orth = new Vector3f();
+			float n_dot_b = normal.dot(bitangent);
+			Vector3f normal_s2 = new Vector3f();
+			normal_s2.scale(n_dot_b, normal);
+			float t_orth_dot_b = tangent_orth.dot(bitangent);
+			Vector3f tang_orth_s = new Vector3f();
+			tang_orth_s.scale(t_orth_dot_b, tangent_orth);
+			float t_orth_dot_t_orth = tangent_orth.dot(tangent_orth);
+			tang_orth_s.scale(1/t_orth_dot_t_orth);
+			bitan_orth.sub(bitangent, normal_s2);
+			bitan_orth.sub(tang_orth_s);
 			
+			/* TODO PA1: Compute handedness of bitangent, as explained on Lengyel's site. */
 			
-			/* TODO PA1: Compute handedness of bitangent, as explained on Lengyel's site. */			
-			float handedness = 1.0f;
-			
+			// determinant of [T';B';N] matrix
+			float determinant = tangent_orth.x*bitan_orth.y*normal.z + 
+							   tangent_orth.y*bitan_orth.z*normal.x +
+							   tangent_orth.z*bitan_orth.x*normal.y -
+							   tangent_orth.z*bitan_orth.y*normal.x -
+							   tangent_orth.y*bitan_orth.x*normal.z -
+							   tangent_orth.x*bitan_orth.z*normal.y;
+			float handedness = determinant/Math.abs(determinant);
 			
 			
 			/* Store the normalized result in the first 3 components, and the handedness in the last one */		

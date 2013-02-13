@@ -180,5 +180,16 @@ public class IsotropicWardMaterial extends Material
 		getShaderProgram().unbind(gl);
 		
 		// TODO PA1: Unbind any used textures.
+		if (mDiffuseTexture != null) {
+			mDiffuseTexture.unbind(gl);
+		}
+		
+		if (mSpecularTexture != null) {
+			mSpecularTexture.unbind(gl);
+		}
+		
+		if (mAlphaTexture != null) {
+			mAlphaTexture.unbind(gl);
+		}
 	}
 }

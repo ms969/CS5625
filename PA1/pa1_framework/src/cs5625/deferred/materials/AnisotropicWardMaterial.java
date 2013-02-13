@@ -158,6 +158,37 @@ public class AnisotropicWardMaterial extends Material
 		getShaderProgram().bind(gl);
 		
 		// TODO PA1: Set shader uniforms and bind any textures.
+		gl.glUniform3f(mDiffuseUniformLocation, mDiffuseColor.x, mDiffuseColor.y, mDiffuseColor.z);
+		if (mDiffuseTexture == null) {
+			gl.glUniform1i(mHasDiffuseTextureUniformLocation, 0);
+		} else {
+			gl.glUniform1i(mHasDiffuseTextureUniformLocation, 1);
+			mDiffuseTexture.bind(gl, 0);
+		}
+
+		gl.glUniform3f(mSpecularUniformLocation, mSpecularColor.x, mSpecularColor.y, mSpecularColor.z);
+		if (mSpecularTexture == null) {
+			gl.glUniform1i(mHasSpecularTextureUniformLocation, 0);
+		} else {
+			gl.glUniform1i(mHasSpecularTextureUniformLocation, 1);
+			mSpecularTexture.bind(gl, 1);
+		}
+		
+		if (mAlphaXTexture == null) {
+			gl.glUniform1i(mHasAlphaXTextureUniformLocation, 0);
+			gl.glUniform1f(mAlphaXUniformLocation, mAlphaX);
+		} else {
+			gl.glUniform1i(mHasAlphaXTextureUniformLocation, 1);
+			mAlphaXTexture.bind(gl, 2);
+		}
+		
+		if (mAlphaYTexture == null) {
+			gl.glUniform1i(mHasAlphaYTextureUniformLocation, 0);
+			gl.glUniform1f(mAlphaYUniformLocation, mAlphaY);
+		} else {
+			gl.glUniform1i(mHasAlphaYTextureUniformLocation, 1);
+			mAlphaXTexture.bind(gl, 3);
+		}
 	}
 	
 	@Override
@@ -190,5 +221,19 @@ public class AnisotropicWardMaterial extends Material
 		getShaderProgram().unbind(gl);
 		
 		// TODO PA1: Unbind any used textures.
+		if (mDiffuseTexture != null) {
+			mDiffuseTexture.unbind(gl);
+		}
+		
+		if (mSpecularTexture != null) {
+			mSpecularTexture.unbind(gl);
+		}
+		
+		if (mAlphaXTexture != null) {
+			mAlphaXTexture.unbind(gl);
+		}
+		if (mAlphaYTexture != null) {
+			mAlphaYTexture.unbind(gl);
+		}
 	}
 }

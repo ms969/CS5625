@@ -252,6 +252,16 @@ void main()
 			gl_FragColor.rgb += shadeIsotropicWard(diffuse, specular, alpha, position, normal,
 				LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
+	} else if (materialID == ANISOTROPIC_WARD_MATERIAL_ID || materialID == -ANISOTROPIC_WARD_MATERIAL_ID) {
+		vec3 specular = materialParams1.gba;
+		float alphaX = materialParams2.x;
+		float alphaY = materialParams2.y;
+		vec3 tangent = decode(materialParams2.zw);
+		vec3 bitangent = normalize(cross(normal, tangent)*float(ANISOTROPIC_WARD_MATERIAL_ID));
+		for (int i = 0; i < NumLights; i++) {
+			gl_FragColor.rgb += shadeAnisotropicWard(diffuse, specular, alphaX, alphaY, position, normal,
+				tangent, bitangent, LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
 	}
 	
 	
