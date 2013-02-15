@@ -46,7 +46,7 @@ void main()
 	 *           You should visualize the data indicated by VisMode.
 	 */
 	vec3 tangent = decode(materialParams2.zw);
-	vec3 bitangent = normalize(cross(normal, tangent)*float(materialID));
+	vec3 bitangent = normalize(cross(normal, tangent));//*float(materialID));
 	
 	if (VisMode == NORMALS_MODE) {
 		// display normal

@@ -210,18 +210,25 @@ public abstract class Mesh implements OpenGLResourceObject
 			tang_orth_s.scale(1/t_orth_dot_t_orth);
 			bitan_orth.sub(bitangent, normal_s2);
 			bitan_orth.sub(tang_orth_s);
+			bitan_orth.normalize();
 			
 			/* TODO PA1: Compute handedness of bitangent, as explained on Lengyel's site. */
 			
 			// determinant of [T';B';N] matrix
-			float determinant = tangent_orth.x*bitan_orth.y*normal.z + 
-							   tangent_orth.y*bitan_orth.z*normal.x +
-							   tangent_orth.z*bitan_orth.x*normal.y -
-							   tangent_orth.z*bitan_orth.y*normal.x -
-							   tangent_orth.y*bitan_orth.x*normal.z -
-							   tangent_orth.x*bitan_orth.z*normal.y;
-			float handedness = determinant/Math.abs(determinant);
-			
+//			float determinant = tangent_orth.x*bitan_orth.y*normal.z + 
+//							   tangent_orth.y*bitan_orth.z*normal.x +
+//							   tangent_orth.z*bitan_orth.x*normal.y -
+//							   tangent_orth.z*bitan_orth.y*normal.x -
+//							   tangent_orth.y*bitan_orth.x*normal.z -
+//							   tangent_orth.x*bitan_orth.z*normal.y;
+//			float handedness = determinant/Math.abs(determinant);
+			Vector3f cross_product = new Vector3f();
+			cross_product.cross(normal, tangent_orth);
+			cross_product.normalize();
+			float handedness = cross_product.dot(bitan_orth);
+			if (handedness < 0) System.out.println("handedness: " + handedness);
+			if (handedness > 0) handedness = 1;
+			else handedness = -1;
 			
 			/* Store the normalized result in the first 3 components, and the handedness in the last one */		
 			result.put(4 * vIndex + 0, tangent_orth.x);

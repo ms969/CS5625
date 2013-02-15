@@ -35,6 +35,7 @@ void main()
 	EyespaceNormal = normalize(gl_NormalMatrix * gl_Normal);
 	EyespaceTangent = normalize(gl_NormalMatrix * VertexTangent.xyz);
 	// directly passing handedness
+	//EyespaceBiTangent = normalize(cross(EyespaceNormal, EyespaceTangent) * VertexTangent.w);
 	EyespaceBiTangent = vec3(VertexTangent.w, 0.0, 0.0);
 	TexCoord = vec2(gl_MultiTexCoord0);
 }

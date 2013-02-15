@@ -63,9 +63,9 @@ void main()
 	float handedness = EyespaceBiTangent.x;
 	
 	if (HasSpecularTexture) {
-		gl_FragData[2] = vec4(float(ANISOTROPIC_WARD_MATERIAL_ID)*handedness, texture2D(SpecularTexture, TexCoord).rgb*SpecularColor);
+		gl_FragData[2] = vec4(float(ANISOTROPIC_WARD_MATERIAL_ID), texture2D(SpecularTexture, TexCoord).rgb*SpecularColor);
 	} else {
-		gl_FragData[2] = vec4(float(ANISOTROPIC_WARD_MATERIAL_ID)*handedness, SpecularColor);
+		gl_FragData[2] = vec4(float(ANISOTROPIC_WARD_MATERIAL_ID), SpecularColor);
 	}
 	
 	if (HasAlphaXTexture) {
