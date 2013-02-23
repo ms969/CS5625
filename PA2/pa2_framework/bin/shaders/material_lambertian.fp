@@ -39,7 +39,7 @@ void main()
 	vec2 enc = encode(normalize(EyespaceNormal));
 	
 	if (HasDiffuseTexture) {
-		gl_FragData[0] = vec4(texture2D(DiffuseTexture, TexCoord).rgb, enc.x);
+		gl_FragData[0] = vec4(texture2D(DiffuseTexture, TexCoord).rgb*DiffuseColor, enc.x);
 	} else {
 		gl_FragData[0] = vec4(DiffuseColor, enc.x);
 	}

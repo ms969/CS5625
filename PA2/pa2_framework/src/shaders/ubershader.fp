@@ -267,6 +267,19 @@ vec3 shadeAnisotropicWard(vec3 diffuse, vec3 specular, float alphaX, float alpha
 	vec3 lightDirection = normalize(lightPosition - position);
 	vec3 halfDirection = normalize(lightDirection + viewDirection);
 	vec3 finalColor = vec3(0.0);
+	
+	// T' = T-(N dot T)N
+	float n_dot_t = dot(normal, tangent);
+	vec3 normal_s = normal * n_dot_t;
+	vec3 tan_orth = normalize(tangent - normal_s);
+	
+	// B' = B - (N dot B)N - (T' dot B)T'/T'^2
+	float n_dot_b = dot(normal, bitangent);
+	normal_s = normal * n_dot_b;
+	float scalar = dot(tan_orth, bitangent)/dot(tan_orth, tan_orth);
+	vec3 tangent_s = scalar * tan_orth;
+	vec3 bitan_orth = bitangent - normal_s - tangent_s;
+	
 
 	// TODO PA1: Complete the Anisotropic Ward shading function.
 	float PI = 3.14159265359;
@@ -282,12 +295,12 @@ vec3 shadeAnisotropicWard(vec3 diffuse, vec3 specular, float alphaX, float alpha
 		//float alphaSquared = alpha * alpha;
 		float tanTerm = tan(acos(n_dot_h));
 		specularTerm = sqrt(n_dot_l / n_dot_v) / (4.0 * PI * alphaX * alphaY);
-		float h_dot_tan_alpha = dot(halfDirection, tangent)/alphaX;
+		float h_dot_tan_alpha = dot(halfDirection, tan_orth)/alphaX;
 		float h_dot_tan_sqr = h_dot_tan_alpha * h_dot_tan_alpha;
-		float h_dot_bitan_alpha = dot(halfDirection, bitangent)/alphaY;
+		float h_dot_bitan_alpha = dot(halfDirection, bitan_orth)/alphaY;
 		float h_dot_bitan_sqr = h_dot_bitan_alpha * h_dot_bitan_alpha;
 		specularTerm *= exp(-2.0*((h_dot_tan_sqr+h_dot_bitan_sqr)/(1.0+n_dot_h)));
-		specularTerm = min(1.0,specularTerm);
+		//specularTerm = min(1.0,specularTerm);
 	}
 	
 	finalColor = diffuse * n_dot_l + specular * specularTerm;
