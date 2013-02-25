@@ -51,12 +51,12 @@ void main()
 	
 	if (VisMode == NORMALS_MODE) {
 		// display normal
-		gl_FragColor = vec4(normal, 0.0);
+		gl_FragColor = vec4((normalize(normal)+1.0)*0.5, 1.0);
 	} else if (VisMode == TANGENTS_MODE) {
 		// display tangent
-		gl_FragColor = vec4(tangent, 0.0);
+		gl_FragColor = vec4((normalize(tangent)+1.0)*0.5, 1.0);
 	} else if (VisMode == BITANGENTS_MODE) {
 		// display bitangent
-		gl_FragColor = vec4(bitangent, 0.0);
+		gl_FragColor = vec4((normalize(bitangent)+1.0)*0.5, 1.0);
 	}
 }
