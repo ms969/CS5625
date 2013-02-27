@@ -416,11 +416,7 @@ void main()
 	// TODO PA1: Add logic to handle all other material IDs. Remember to loop over all NumLights.
 	// TODO PA2: (1) Add logic to handle the new reflection material; (2) Extend your Cook-Torrance
 	// model to support perfect mirror reflection from an environment map, given by its index. 	
-	else if (materialID == LAMBERTIAN_MATERIAL_ID) {
-		for (int i = 0; i < NumLights; i++) {
-		 	gl_FragColor.rgb += shadeLambertian(diffuse, position, normal, LightPositions[i], LightColors[i], LightAttenuations[i]);
-		}
-	} else if (materialID == BLINNPHONG_MATERIAL_ID) {
+	else if (materialID == BLINNPHONG_MATERIAL_ID) {
 		vec3 specular = materialParams1.gba;
 		float n = materialParams2.x;
 		for (int i = 0; i < NumLights; i++) {

@@ -46,6 +46,33 @@ void main()
 {
 	// TODO PA2: Store diffuse color, position, encoded normal, material ID, and all other useful data in the g-buffer.
 	//			 Use the normal map to get a new normal.
+	vec2 enc;
+	if (HasNormalTexture) {
+		// QUESTION: how to transform normals to eyespace coordinate?
+		vec3 normalTex = texture2D(NormalTexture, TexCoord).xyz - vec3(0.5);
+		enc = encode(normalize(normalTex));
+	} else {
+		enc = encode(normalize(EyespaceNormal));
+	}
 	
-	gl_FragData[0] = gl_FragData[1] = gl_FragData[2] = gl_FragData[3] = vec4(1.0);	
+	if (HasDiffuseTexture) {
+		gl_FragData[0] = vec4(texture2D(DiffuseTexture, TexCoord).rgb*DiffuseColor, enc.x);
+	} else {
+		gl_FragData[0] = vec4(DiffuseColor, enc.x);
+	}
+	
+	gl_FragData[1] = vec4(EyespacePosition, enc.y);
+	
+	if (HasSpecularTexture) {
+		gl_FragData[2] = vec4(float(BLINNPHONG_MATERIAL_ID), texture2D(SpecularTexture, TexCoord).rgb*SpecularColor);
+	} else {
+		gl_FragData[2] = vec4(float(BLINNPHONG_MATERIAL_ID), SpecularColor);
+	}
+	
+	if (HasExponentTexture) {
+		gl_FragData[3] = vec4(float(texture2D(ExponentTexture, TexCoord).x*255.0), 0.0, 0.0, 0.0);
+	} else {
+		gl_FragData[3] = vec4(PhongExponent, 0.0, 0.0, 0.0);
+	}
+		
 }

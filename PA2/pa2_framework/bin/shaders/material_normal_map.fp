@@ -50,5 +50,36 @@ void main()
 	// TODO PA2: Store diffuse color, position, encoded normal, material ID, and all other useful data in the g-buffer.
 	//			 Use the normal map and tangent vectors to get a new normal.
 	
-	gl_FragData[0] = gl_FragData[1] = gl_FragData[2] = gl_FragData[3] = vec4(1.0);	
+	// get a new normal
+	vec2 enc_normal;
+	if (HasNormalTexture) {
+		// QUESTION: how is NormalTexture encoded? (right now using x and y)
+		vec3 new_norm = EyespaceNormal + 
+						texture2D(NormalTexture, TexCoord).x * EyespaceTangent + 
+						texture2D(NormalTexture, TexCoord).y * EyespaceBiTangent;
+		enc_normal = encode(new_norm);
+	} else {
+		enc_normal = encode(EyespaceNormal);
+	}
+	
+	if (HasDiffuseTexture) {
+		gl_FragData[0] = vec4(texture2D(DiffuseTexture, TexCoord).rgb*DiffuseColor, enc_normal.x);
+	} else {
+		gl_FragData[0] = vec4(DiffuseColor, enc_normal.x);
+	}
+	
+	gl_FragData[1] = vec4(EyespacePosition, enc_normal.y);
+	
+	if (HasSpecularTexture) {
+		gl_FragData[2] = vec4(float(BLINNPHONG_MATERIAL_ID), texture2D(SpecularTexture, TexCoord).rgb*SpecularColor);
+	} else {
+		gl_FragData[2] = vec4(float(BLINNPHONG_MATERIAL_ID), SpecularColor);
+	}
+	
+	if (HasExponentTexture) {
+		gl_FragData[3] = vec4(float(texture2D(ExponentTexture, TexCoord).x*255.0), 0.0, 0.0, 0.0);
+	} else {
+		gl_FragData[3] = vec4(PhongExponent, 0.0, 0.0, 0.0);
+	}
+	
 }
