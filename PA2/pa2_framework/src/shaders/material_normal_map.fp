@@ -53,10 +53,22 @@ void main()
 	// get a new normal
 	vec2 enc_normal;
 	if (HasNormalTexture) {
-		// QUESTION: how is NormalTexture encoded? (right now using x and y)
-		vec3 new_norm = EyespaceNormal + 
-						texture2D(NormalTexture, TexCoord).x * EyespaceTangent + 
-						texture2D(NormalTexture, TexCoord).y * EyespaceBiTangent;
+		// TODO: need to re-orthogonalize tangent and bitangent
+		// T' = T-(N dot T)N
+		float n_dot_t = dot(EyespaceNormal, EyespaceTangent);
+		vec3 normal_s = EyespaceNormal * n_dot_t;
+		vec3 tan_orth = normalize(EyespaceTangent - normal_s);
+		
+		// B' = B - (N dot B)N - (T' dot B)T'/T'^2
+		float n_dot_b = dot(EyespaceNormal, EyespaceBiTangent);
+		normal_s = EyespaceNormal * n_dot_b;
+		float scalar = dot(tan_orth, EyespaceBiTangent)/dot(tan_orth, tan_orth);
+		vec3 tangent_s = scalar * tan_orth;
+		vec3 bitan_orth = EyespaceBiTangent - normal_s - tangent_s;
+		
+		vec3 normalTex = normalize(texture2D(NormalTexture, TexCoord).xyz - vec3(0.5));
+		mat3 TBN = mat3(tan_orth, bitan_orth, EyespaceNormal);
+		vec3 new_norm = normalize(TBN * normalTex);
 		enc_normal = encode(new_norm);
 	} else {
 		enc_normal = encode(EyespaceNormal);
