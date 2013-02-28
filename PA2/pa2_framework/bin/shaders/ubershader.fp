@@ -99,6 +99,25 @@ vec3 sampleCubeMap(vec3 reflectedDirection, int cubeMapIndex)
 }
 
 /**
+ * Performs reflective shading on the passed fragment data (normal, position).
+ * 
+ * @param position The eyespace position of the surface at this fragment.
+ * @param normal The eyespace normal of the surface at this fragment.
+ * @param cubeMapIndex The id of the cube map to use (1 = static, >2 means dynamic,
+ * where the DynamicCubeMapTexture{cubeMapIndex - 2} sampeld object will be used).
+ * 
+ * @return The reflected color.
+ */
+vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
+{	
+	// TODO PA2: Implement a perfect mirror material using environmnet map lighting.
+	vec3 view = -position;
+	vec3 reflected = 2.0 * dot(normal, view) * normal - view;
+	reflected = CameraInverseRotation * reflected;
+	return sampleCubeMap(reflected, cubeMapIndex);
+}
+
+/**
  * Mix the base color of a pixel (e.g. computed by Cook-Torrance) with the reflected color from an environment map.
  * The base color and reflected color are linearly mixed based on the Fresnel term at this fragment. The Fresnel term is 
  * computed based on the cosine of the angle between the view vector and the normal, using Schlick's approximation.
@@ -114,8 +133,12 @@ vec3 sampleCubeMap(vec3 reflectedDirection, int cubeMapIndex)
 vec3 mixEnvMapWithBaseColor(int cubeMapIndex, vec3 baseColor, vec3 position, vec3 normal, float n) {
 	// TODO PA2: Implement the requirements of this function. 
 	// Hint: You can use the GLSL command mix to linearly blend between two colors.
-	
-	return vec3(0.0);	
+	vec3 reflectedColor = shadeReflective(position, normal, cubeMapIndex);
+	float r0 = pow((1.0-n)/(1.0+n), 2.0);
+	vec3 view = normalize(-position);
+	float cos_theta = dot(normal, view);
+	float fresnel_factor = r0 + (1.0 - r0) * pow(1.0 - cos_theta, 5.0);
+	return mix(baseColor, reflectedColor, fresnel_factor);
 }
 
 /**
@@ -360,22 +383,7 @@ vec3 shadeIsotropicWard(vec3 diffuse, vec3 specular, float alpha, vec3 position,
 	return attenuation * finalColor;
 }
 
-/**
- * Performs reflective shading on the passed fragment data (normal, position).
- * 
- * @param position The eyespace position of the surface at this fragment.
- * @param normal The eyespace normal of the surface at this fragment.
- * @param cubeMapIndex The id of the cube map to use (1 = static, >2 means dynamic,
- * where the DynamicCubeMapTexture{cubeMapIndex - 2} sampeld object will be used).
- * 
- * @return The reflected color.
- */
-vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
-{	
-	// TODO PA2: Implement a perfect mirror material using environmnet map lighting.
-	
-	return vec3(0.0);
-}
+
 
 
 void main()
@@ -447,6 +455,11 @@ void main()
 		for (int i = 0; i < NumLights; i++) {
 			gl_FragColor.rgb += shadeAnisotropicWard(diffuse, specular, alphaX, alphaY, position, normal,
 				tangent, bitangent, LightPositions[i], LightColors[i], LightAttenuations[i]);
+		}
+	} else if (materialID == REFLECTION_MATERIAL_ID) {
+		int cubeMapIndex = int(materialParams1.y);
+		for (int i = 0; i < NumLights; i++) {
+			gl_FragColor.rgb += shadeReflective(position, normal, cubeMapIndex);
 		}
 	}
 	else

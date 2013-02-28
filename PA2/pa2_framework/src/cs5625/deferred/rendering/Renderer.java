@@ -9,6 +9,7 @@ import javax.media.opengl.GLAutoDrawable;
 //import javax.media.opengl.glu.GLU;
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Color3f;
+import javax.vecmath.Matrix3f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
 
@@ -516,7 +517,25 @@ public class Renderer
 		// TODO PA2: Set the inverse camera rotation matrix uniform and bind the static
 		// and the active dynamic cube maps (given by mNumDynamicCubeMaps).
 		// Hint: Make sure you upload the inverse world space camera rotation matrix,
-		// using glUniformMatrix3fv.			
+		// using glUniformMatrix3fv.
+		FloatBuffer bf = FloatBuffer.allocate(9);
+		Matrix3f rotation = new Matrix3f();
+		rotation.invert(camera.getWorldSpaceRotationMatrix3f());
+		bf.put(rotation.m00);
+		bf.put(rotation.m01);
+		bf.put(rotation.m02);
+		bf.put(rotation.m10);
+		bf.put(rotation.m11);
+		bf.put(rotation.m12);
+		bf.put(rotation.m20);
+		bf.put(rotation.m21);
+		bf.put(rotation.m22);
+		gl.glUniformMatrix3fv(mCameraInverseRotationUniformLocation, 9, false, bf);
+		
+		mStaticCubeMap.bind(gl, mStaticCubeMap.getCubeMapIndex());
+		for (int i = 0; i < mNumDynamicCubeMaps; i++) {
+			mDynamicCubeMaps.get(i).bind(gl, mDynamicCubeMaps.get(i).getCubeMapIndex());
+		}
 
 		/* Let there be light! */
 		Util.drawFullscreenQuad(gl, mViewportWidth, mViewportHeight);
@@ -525,7 +544,10 @@ public class Renderer
 		mUberShader.unbind(gl);
 		
 		// TODO PA2: Unbind the static and active dynamic cube maps.
-		
+		mStaticCubeMap.unbind(gl);
+		for (int i = 0; i < mNumDynamicCubeMaps; i++) {
+			mDynamicCubeMaps.get(i).unbind(gl);
+		}
 		
 		for (int i = 0; i < GBuffer_FinalSceneIndex; ++i)
 		{

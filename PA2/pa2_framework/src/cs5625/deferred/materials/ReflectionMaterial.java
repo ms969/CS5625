@@ -55,7 +55,6 @@ public class ReflectionMaterial extends Material
 		// TODO PA2: Set shader uniforms
 		int cubeMapIndex = mCubeMap.mCubeMapIndex;
 		gl.glUniform1i(mCubeMapIndexUniformLocation, cubeMapIndex);
-		mCubeMap.bind(gl, cubeMapIndex);
 	}
 
 	@Override
@@ -63,7 +62,6 @@ public class ReflectionMaterial extends Material
 	{
 		/* Unbind anything bound in bind(). */
 		getShaderProgram().unbind(gl);
-		mCubeMap.unbind(gl);
 	}
 	
 	@Override
