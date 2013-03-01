@@ -110,10 +110,12 @@ vec3 sampleCubeMap(vec3 reflectedDirection, int cubeMapIndex)
  */
 vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
 {	
-	// TODO PA2: Implement a perfect mirror material using environmnet map lighting.
-	vec3 view = -position;
-	vec3 reflected = 2.0 * dot(normal, view) * normal - view;
-	reflected = CameraInverseRotation * reflected;
+	// TODO PA2: Implement a perfect mirror material using environment map lighting.
+	
+	vec3 view = -normalize(CameraInverseRotation*position);
+	vec3 wNormal = normalize(CameraInverseRotation*normal);
+	//vec3 reflected = 2.0 * dot(wNormal, view) * wNormal - view;
+	vec3 reflected = reflect(view,wNormal);
 	return sampleCubeMap(reflected, cubeMapIndex);
 }
 

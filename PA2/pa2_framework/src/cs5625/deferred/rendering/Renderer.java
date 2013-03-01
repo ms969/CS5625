@@ -163,7 +163,7 @@ public class Renderer
 				numPasses = 6 * mNumDynamicCubeMaps + 1;
 								
 				// TODO PA2: Resize the g-buffer to the size of the dynamic cube maps,
-				// using the mDynamicCubeMapSize variable.				
+				// using the mDynamicCubeMapSize variable.
 			}			
 						
 			for (int i = 0; i < numPasses; ++i) {
@@ -185,7 +185,11 @@ public class Renderer
 					// TODO PA2: (1) Restore the original g-buffer size and camera positions;
 					// (2) If mBlurDynamicCubeMaps is set to true, blur all dynamic
 					// cube maps, using the mBlur* variables to get the horizontal
-					// and vertical blur width and variance.					
+					// and vertical blur width and variance.				
+					camera.setPosition(originalPosition);
+					camera.setFOV(originalFov);
+					camera.setOrientation(originalOrientation);
+					camera.setIsCubeMapCamera(false);
 					
 				} else { /* Render the scene from the corresponding dynamic cube map point of view. */
 					
@@ -195,12 +199,59 @@ public class Renderer
 					/* Hide the object (if any) attached to the dynamic cube map. */
 					if (mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterObject() != null) {
 						mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterObject().setVisible(false);
-					}	
+					}
 					
 					// TODO PA2: Prepare the camera for a cube map rendering mode:
 					// indicate that the camera is used for environment rendering, 
 					// change the position, the FOV and the orientation so that it 
-					// renders the environment for the given face (dynamicCubeMapFace).					
+					// renders the environment for the given face (dynamicCubeMapFace).
+					//leftrighttopbottomfrontback
+					camera.setFOV(90);
+					camera.setIsCubeMapCamera(true);
+					switch(dynamicCubeMapFace) {
+					case 0: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 1: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (3*Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 2: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(1f,0f,0f,(float) (3*Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 3: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(1f,0f,0f,(float) (Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 4: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,0f);
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 5: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (Math.PI));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					}
 				}	
 
 				/* 1. Fill the gbuffer given this scene and camera. */ 
@@ -521,20 +572,14 @@ public class Renderer
 		FloatBuffer bf = FloatBuffer.allocate(9);
 		Matrix3f rotation = new Matrix3f();
 		rotation.invert(camera.getWorldSpaceRotationMatrix3f());
-		bf.put(rotation.m00);
-		bf.put(rotation.m01);
-		bf.put(rotation.m02);
-		bf.put(rotation.m10);
-		bf.put(rotation.m11);
-		bf.put(rotation.m12);
-		bf.put(rotation.m20);
-		bf.put(rotation.m21);
-		bf.put(rotation.m22);
-		gl.glUniformMatrix3fv(mCameraInverseRotationUniformLocation, 9, false, bf);
+		float f[] = new float[]{rotation.m00,rotation.m01,rotation.m02,rotation.m10,rotation.m11,rotation.m12,rotation.m20,rotation.m21,rotation.m22};
+		bf = FloatBuffer.wrap(f);
+		gl.glUniformMatrix3fv(mCameraInverseRotationUniformLocation, 1, true, bf);
 		
-		mStaticCubeMap.bind(gl, mStaticCubeMap.getCubeMapIndex());
+		if(mStaticCubeMap != null)
+			mStaticCubeMap.bind(gl, mStaticCubeMapIndex);
 		for (int i = 0; i < mNumDynamicCubeMaps; i++) {
-			mDynamicCubeMaps.get(i).bind(gl, mDynamicCubeMaps.get(i).getCubeMapIndex());
+			mDynamicCubeMaps.get(i).bind(gl, mDynamicCubeMapBaseIndex + i);
 		}
 
 		/* Let there be light! */
