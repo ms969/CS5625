@@ -18,7 +18,8 @@ uniform float TextureSize;
 uniform float KernelVariance;
 uniform int KernelWidth;
 
-/* horizontal axis is 0, vertical axis is non-zero */uniform int Axis;
+/* horizontal axis is 0, vertical axis is non-zero */
+uniform int Axis;
 
 // TODO PA2: Implement a 1D Gaussian blur in the given direction
 // Hint: The interpolated texture coordinates can be accessed
