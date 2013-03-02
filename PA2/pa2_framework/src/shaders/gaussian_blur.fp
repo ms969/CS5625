@@ -28,5 +28,8 @@ uniform int Axis;
 
 void main()
 {
+	int maxd = 2*KernelWidth + 1;
+	for(int i = 0; i < 2*
+
     gl_FragColor = vec4(0.0);
 }
