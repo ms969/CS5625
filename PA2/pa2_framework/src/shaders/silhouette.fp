@@ -34,6 +34,17 @@ vec4 sample(vec2 coord)
 void main()
 {
 	// TODO PA2: Take a 3x3 sample of positions and normals and perform edge/crease estimation as in [Decaudin96].
+	vec4 A = sample(vec2(gl_FragCoord.x-1.0, gl_FragCoord.y+1.0));
+	vec4 B = sample(vec2(gl_FragCoord.x, gl_FragCoord.y+1.0));
+	vec4 C = sample(vec2(gl_FragCoord.x+1.0, gl_FragCoord.y+1.0));
 	
-	gl_FragColor = vec4(0.0);	
+	vec4 D = sample(vec2(gl_FragCoord.x-1.0, gl_FragCoord.y));
+	vec4 x = sample(vec2(gl_FragCoord.x, gl_FragCoord.y));
+	vec4 E = sample(vec2(gl_FragCoord.x+1.0, gl_FragCoord.y));
+	
+	vec4 F = sample(vec2(gl_FragCoord.x-1.0, gl_FragCoord.y-1.0));
+	vec4 G = sample(vec2(gl_FragCoord.x, gl_FragCoord.y-1.0));
+	vec4 H = sample(vec2(gl_FragCoord.x+1.0, gl_FragCoord.y-1.0));
+	
+	gl_FragColor = (1.0/8.0)*(abs(A-x) + 2.0*abs(B-x) + abs(C-x) + 2.0*abs(D-x) + 2.0*abs(E-x) + abs(F-x) + 2.0*abs(G-x) + abs(H-x));
 }

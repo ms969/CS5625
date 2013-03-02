@@ -135,9 +135,56 @@ float silhouetteStrength()
 	//           Hint: You have to use texture2DRect to sample the silhouette buffer,
 	//                 it expects pixel indices instead of texture coordinates. Use
 	//                 gl_FragCoord.xy to get the current pixel.
+	vec4 A = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x-1.0, gl_FragCoord.y+1.0));
+	vec4 B = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x, gl_FragCoord.y+1.0));
+	vec4 C = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x+1.0, gl_FragCoord.y+1.0));
 	
+	vec4 D = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x-1.0, gl_FragCoord.y));
+	vec4 x = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x, gl_FragCoord.y));
+	vec4 E = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x+1.0, gl_FragCoord.y));
 	
-	return 0.0;	
+	vec4 F = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x-1.0, gl_FragCoord.y-1.0));
+	vec4 G = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x, gl_FragCoord.y-1.0));
+	vec4 H = texture2DRect(SilhouetteBuffer, vec2(gl_FragCoord.x+1.0, gl_FragCoord.y-1.0));
+	
+	float gminx = min(A.x, min(B.x, C.x));
+	gminx = min(gminx, min(D.x, min(x.x, E.x)));
+	gminx = min(gminx, min(F.x, min(G.x, H.x)));
+	
+	float gminy = min(A.y, min(B.y, C.y));
+	gminy = min(gminy, min(D.y, min(x.y, E.y)));
+	gminy = min(gminy, min(F.y, min(G.y, H.y)));
+	
+	float gminz = min(A.z, min(B.z, C.z));
+	gminz = min(gminz, min(D.z, min(x.z, E.z)));
+	gminz = min(gminz, min(F.z, min(G.z, H.z)));
+	
+	float gminw = min(A.w, min(B.w, C.w));
+	gminw = min(gminw, min(D.w, min(x.w, E.w)));
+	gminw = min(gminw, min(F.w, min(G.w, H.w)));
+	
+	float gmaxx = max(A.x, max(B.x, C.x));
+	gmaxx = max(gmaxx, max(D.x, max(x.x, E.x)));
+	gmaxx = max(gmaxx, max(F.x, max(G.x, H.x)));
+	
+	float gmaxy = max(A.y, max(B.y, C.y));
+	gmaxy = max(gmaxy, max(D.y, max(x.y, E.y)));
+	gmaxy = max(gmaxy, max(F.y, max(G.y, H.y)));
+	
+	float gmaxz = max(A.z, max(B.z, C.z));
+	gmaxz = max(gmaxz, max(D.z, max(x.z, E.z)));
+	gmaxz = max(gmaxz, max(F.z, max(G.z, H.z)));
+	
+	float gmaxw = max(A.w, max(B.w, C.w));
+	gmaxw = max(gmaxw, max(D.w, max(x.w, E.w)));
+	gmaxw = max(gmaxw, max(F.w, max(G.w, H.w)));
+	
+	float xTerm = pow((gmaxx-gminx)/0.3, 2.0);
+	float yTerm = pow((gmaxy-gminy)/0.3, 2.0);
+	float zTerm = pow((gmaxz-gminz)/0.3, 2.0);
+	float wTerm = pow((gmaxw-gminw)/0.3, 2.0);
+	
+	return min(xTerm + yTerm + zTerm + wTerm, 1.0);
 }
 
 /**
@@ -158,6 +205,13 @@ vec3 shadeLambertian(vec3 diffuse, vec3 position, vec3 normal, vec3 lightPositio
 	float ndotl = max(0.0, dot(normal, lightDirection));
 
 	// TODO PA2: Update this function to threshold its n.l and n.h values if toon shading is enabled.	
+	if (EnableToonShading) {
+		if (ndotl < 0.1) {
+			ndotl = 0.0;
+		} else {
+			ndotl = 1.0;
+		}
+	}
 	
 	float r = length(lightPosition - position);
 	float attenuation = 1.0 / dot(lightAttenuation, vec3(1.0, r, r * r));
@@ -190,6 +244,18 @@ vec3 shadeBlinnPhong(vec3 diffuse, vec3 specular, float exponent, vec3 position,
 	float ndoth = max(0.0, dot(normal, halfDirection));
 	
 	// TODO PA2: Update this function to threshold its n.l and n.h values if toon shading is enabled.	
+	if (EnableToonShading) {
+		if (ndotl < 0.1) {
+			ndotl = 0.0;
+		} else {
+			ndotl = 1.0;
+		}
+		if (ndoth < 0.9) {
+			ndoth = 0.0;
+		} else {
+			ndoth = 1.0;
+		}
+	}
 	
 	float pow_ndoth = (ndotl > 0.0 && ndoth > 0.0 ? pow(ndoth, exponent) : 0.0);
 
@@ -232,8 +298,21 @@ vec3 shadeCookTorrance(vec3 diffuse, vec3 specular, float m, float n, vec3 posit
     float n_dot_h = max(0.0, dot(normal, halfDirection));
     float v_dot_h = max(0.0, dot(viewDirection, halfDirection));
     
+	if (EnableToonShading) {
+		if (n_dot_l < 0.1) {
+			n_dot_l = 0.0;
+		} else {
+			n_dot_l = 1.0;
+		}
+		if (n_dot_h < 0.9) {
+			n_dot_h = 0.0;
+		} else {
+			n_dot_h = 1.0;
+		}
+	}
+    
     float ctspec = 0.0;
-    if (n_dot_v > 0.0 && n_dot_l > 0.0 && v_dot_h > 0.0) {
+    if (n_dot_v > 0.0 && v_dot_h > 0.0) {
 	    float a = acos(n_dot_h);
 	    
 	    float R0 = pow((1.0-n)/(1.0+n),2.0);
@@ -244,6 +323,7 @@ vec3 shadeCookTorrance(vec3 diffuse, vec3 specular, float m, float n, vec3 posit
 	    
 	    ctspec = min(1.0,F*D*G/(n_dot_l*n_dot_v*PI));
 	}
+	
     
     finalColor = diffuse*n_dot_l + ctspec*specular*n_dot_l;
 	// TODO PA2: Update this function to threshold its n.l and n.h values if toon shading is enabled.	
@@ -300,6 +380,19 @@ vec3 shadeAnisotropicWard(vec3 diffuse, vec3 specular, float alphaX, float alpha
 	float n_dot_h = max(0.0, dot(normal, halfDirection));
 	float l_dot_v = max(0.0, dot(lightDirection, viewDirection));
 	
+	if (EnableToonShading) {
+		if (n_dot_l < 0.1) {
+			n_dot_l = 0.0;
+		} else {
+			n_dot_l = 1.0;
+		}
+		if (n_dot_h < 0.9) {
+			n_dot_h = 0.0;
+		} else {
+			n_dot_h = 1.0;
+		}
+	}
+	
 	float specularTerm = 0.0;
 	
 	if (n_dot_v > 0.0) {
@@ -311,7 +404,7 @@ vec3 shadeAnisotropicWard(vec3 diffuse, vec3 specular, float alphaX, float alpha
 		float h_dot_bitan_alpha = dot(halfDirection, bitan_orth)/alphaY;
 		float h_dot_bitan_sqr = h_dot_bitan_alpha * h_dot_bitan_alpha;
 		specularTerm *= exp(-2.0*((h_dot_tan_sqr+h_dot_bitan_sqr)/(1.0+n_dot_h)));
-		//specularTerm = min(1.0,specularTerm);
+		specularTerm = min(1.0,specularTerm);
 	}
 	
 	finalColor = diffuse * n_dot_l + specular * specularTerm;
@@ -352,6 +445,19 @@ vec3 shadeIsotropicWard(vec3 diffuse, vec3 specular, float alpha, vec3 position,
 	float n_dot_v = max(0.0, dot(normal, viewDirection));
 	float n_dot_h = max(0.0, dot(normal, halfDirection));
 	float l_dot_v = max(0.0, dot(lightDirection, viewDirection));
+	
+	if (EnableToonShading) {
+		if (n_dot_l < 0.1) {
+			n_dot_l = 0.0;
+		} else {
+			n_dot_l = 1.0;
+		}
+		if (n_dot_h < 0.9) {
+			n_dot_h = 0.0;
+		} else {
+			n_dot_h = 1.0;
+		}
+	}
 	
 	float specularTerm = 0.0;
 	
