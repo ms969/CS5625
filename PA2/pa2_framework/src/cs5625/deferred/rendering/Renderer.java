@@ -164,6 +164,7 @@ public class Renderer
 								
 				// TODO PA2: Resize the g-buffer to the size of the dynamic cube maps,
 				// using the mDynamicCubeMapSize variable.
+				resize(drawable, mDynamicCubeMapSize, mDynamicCubeMapSize);
 			}			
 						
 			for (int i = 0; i < numPasses; ++i) {
@@ -185,7 +186,8 @@ public class Renderer
 					// TODO PA2: (1) Restore the original g-buffer size and camera positions;
 					// (2) If mBlurDynamicCubeMaps is set to true, blur all dynamic
 					// cube maps, using the mBlur* variables to get the horizontal
-					// and vertical blur width and variance.				
+					// and vertical blur width and variance.		
+					resize(drawable, (int)originalWidth, (int)originalHeight);
 					camera.setPosition(originalPosition);
 					camera.setFOV(originalFov);
 					camera.setOrientation(originalOrientation);
@@ -285,6 +287,7 @@ public class Renderer
 					}
 					/* Use this to debug your cube maps... */
 					else {
+						// TODO
 						//Util.renderCubeMapFullscreen(gl, mDynamicCubeMaps.get(0));
 					}					 								 
 				}

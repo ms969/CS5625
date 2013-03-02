@@ -191,7 +191,12 @@ public class CookTorranceMaterial extends Material
 			mNTexture.bind(gl, 3);
 		}
 		
-		// TODO PA2: Set the cube map index uniform.		
+		// TODO PA2: Set the cube map index uniform.
+		if (mCubeMapTexture != null) {
+			gl.glUniform1i(mCubeMapIndexUniformLocation, mCubeMapTexture.getCubeMapIndex());
+		} else {
+			gl.glUniform1i(mCubeMapIndexUniformLocation, 0);
+		}
 	}
 	
 	@Override

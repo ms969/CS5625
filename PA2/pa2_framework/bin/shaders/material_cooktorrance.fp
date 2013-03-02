@@ -67,8 +67,8 @@ void main()
 	}
 	
 	if (HasMTexture) {
-		gl_FragData[3] = vec4(float(texture2D(MTexture, TexCoord).x), float(texture2D(NTexture, TexCoord).x*255.0), 0.0, 0.0);
+		gl_FragData[3] = vec4(float(texture2D(MTexture, TexCoord).x), float(texture2D(NTexture, TexCoord).x*255.0), float(CubeMapIndex), 0.0);
 	} else {
-		gl_FragData[3] = vec4(M, N, 0.0, 0.0);
+		gl_FragData[3] = vec4(M, N, float(CubeMapIndex), 0.0);
 	}
 }
