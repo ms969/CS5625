@@ -18,8 +18,7 @@ uniform float TextureSize;
 uniform float KernelVariance;
 uniform int KernelWidth;
 
-/* horizontal axis is 0, vertical axis is non-zero */
-uniform int Axis;
+/* horizontal axis is 0, vertical axis is non-zero */uniform int Axis;
 
 // TODO PA2: Implement a 1D Gaussian blur in the given direction
 // Hint: The interpolated texture coordinates can be accessed
@@ -29,6 +28,18 @@ uniform int Axis;
 void main()
 {
 	int maxd = 2*KernelWidth + 1;
+	vec3 sum;
+	int weight = 0;
+	
+	for (int i = -maxd; i < maxd + 1; i++) {
+		weight =  exp(-abs(i)*abs(i)/(2.0*KernelVariance));
+		if(Axis == 0) {
+			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x + float(i)/TextureSize, gl_TexCoord[0].y));
+		}
+		else {
+			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x, gl_TexCoord[0].y + float(i)/TextureSize));
+		}
+	}
 
-    gl_FragColor = vec4(0.0);
+    gl_FragColor = vec4(vec3(1.0,0.0,0.0), 1.0);
 }
