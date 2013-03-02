@@ -98,26 +98,6 @@ vec3 sampleCubeMap(vec3 reflectedDirection, int cubeMapIndex)
 	return sampledColor;
 }
 
-/**
- * Performs reflective shading on the passed fragment data (normal, position).
- * 
- * @param position The eyespace position of the surface at this fragment.
- * @param normal The eyespace normal of the surface at this fragment.
- * @param cubeMapIndex The id of the cube map to use (1 = static, >2 means dynamic,
- * where the DynamicCubeMapTexture{cubeMapIndex - 2} sampeld object will be used).
- * 
- * @return The reflected color.
- */
-vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
-{	
-	// TODO PA2: Implement a perfect mirror material using environment map lighting.
-	
-	vec3 view = -normalize(CameraInverseRotation*position);
-	vec3 wNormal = normalize(CameraInverseRotation*normal);
-	//vec3 reflected = 2.0 * dot(wNormal, view) * wNormal - view;
-	vec3 reflected = reflect(view,wNormal);
-	return sampleCubeMap(reflected, cubeMapIndex);
-}
 
 /**
  * Mix the base color of a pixel (e.g. computed by Cook-Torrance) with the reflected color from an environment map.
@@ -135,10 +115,12 @@ vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
 vec3 mixEnvMapWithBaseColor(int cubeMapIndex, vec3 baseColor, vec3 position, vec3 normal, float n) {
 	// TODO PA2: Implement the requirements of this function. 
 	// Hint: You can use the GLSL command mix to linearly blend between two colors.
-	vec3 reflectedColor = shadeReflective(position, normal, cubeMapIndex);
+	vec3 view = -normalize(CameraInverseRotation*position);
+	vec3 wNormal = normalize(CameraInverseRotation*normal);
+	vec3 reflected = reflect(view,wNormal);
+	vec3 reflectedColor = sampleCubeMap(reflected, cubeMapIndex);
 	float r0 = pow((1.0-n)/(1.0+n), 2.0);
-	vec3 view = normalize(-position);
-	float cos_theta = dot(normal, view);
+	float cos_theta = dot(wNormal, view);
 	float fresnel_factor = r0 + (1.0 - r0) * pow(1.0 - cos_theta, 5.0);
 	return mix(baseColor, reflectedColor, fresnel_factor);
 }
@@ -249,15 +231,19 @@ vec3 shadeCookTorrance(vec3 diffuse, vec3 specular, float m, float n, vec3 posit
     float n_dot_v = max(0.0, dot(normal, viewDirection));
     float n_dot_h = max(0.0, dot(normal, halfDirection));
     float v_dot_h = max(0.0, dot(viewDirection, halfDirection));
-    float a = acos(n_dot_h);
     
-    float R0 = pow((1.0-n)/(1.0+n),2.0);
-    
-    float F = R0 + (1.0-R0)*pow(1.0-cos(acos(v_dot_h)),5.0);
-    float D = 1.0/(4.0*m*m*pow(cos(a),4.0))*exp(-pow(tan(a)/m,2.0));
-    float G = min(1.0,min(2.0*n_dot_h*n_dot_v/v_dot_h,2.0*n_dot_h*n_dot_l/v_dot_h));
-    
-    float ctspec = min(1.0,F*D*G/(n_dot_l*n_dot_v*PI));
+    float ctspec = 0.0;
+    if (n_dot_v > 0.0 && n_dot_l > 0.0 && v_dot_h > 0.0) {
+	    float a = acos(n_dot_h);
+	    
+	    float R0 = pow((1.0-n)/(1.0+n),2.0);
+	    
+	    float F = R0 + (1.0-R0)*pow(1.0-cos(acos(v_dot_h)),5.0);
+	    float D = 1.0/(4.0*m*m*pow(cos(a),4.0))*exp(-pow(tan(a)/m,2.0));
+	    float G = min(1.0,min(2.0*n_dot_h*n_dot_v/v_dot_h,2.0*n_dot_h*n_dot_l/v_dot_h));
+	    
+	    ctspec = min(1.0,F*D*G/(n_dot_l*n_dot_v*PI));
+	}
     
     finalColor = diffuse*n_dot_l + ctspec*specular*n_dot_l;
 	// TODO PA2: Update this function to threshold its n.l and n.h values if toon shading is enabled.	
@@ -385,7 +371,26 @@ vec3 shadeIsotropicWard(vec3 diffuse, vec3 specular, float alpha, vec3 position,
 	return attenuation * finalColor;
 }
 
-
+/**
+ * Performs reflective shading on the passed fragment data (normal, position).
+ * 
+ * @param position The eyespace position of the surface at this fragment.
+ * @param normal The eyespace normal of the surface at this fragment.
+ * @param cubeMapIndex The id of the cube map to use (1 = static, >2 means dynamic,
+ * where the DynamicCubeMapTexture{cubeMapIndex - 2} sampeld object will be used).
+ * 
+ * @return The reflected color.
+ */
+vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
+{	
+	// TODO PA2: Implement a perfect mirror material using environment map lighting.
+	
+	vec3 view = -normalize(CameraInverseRotation*position);
+	vec3 wNormal = normalize(CameraInverseRotation*normal);
+	//vec3 reflected = 2.0 * dot(wNormal, view) * wNormal - view;
+	vec3 reflected = reflect(view,wNormal);
+	return sampleCubeMap(reflected, cubeMapIndex);
+}
 
 
 void main()
@@ -437,10 +442,13 @@ void main()
 		vec3 specular = materialParams1.gba;
 		float m = materialParams2.x;
 		float n = materialParams2.y;
+		int cubeMapIndex = int(materialParams2.z);
+		vec3 baseColor = vec3(0.0);
 		for (int i = 0; i < NumLights; i++) {
-			gl_FragColor.rgb += shadeCookTorrance(diffuse, specular, m, n, position, normal,
+			baseColor += shadeCookTorrance(diffuse, specular, m, n, position, normal,
 				LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
+		gl_FragColor.rgb = mixEnvMapWithBaseColor(cubeMapIndex, baseColor, position, normal, n);
 	} else if (materialID == ISOTROPIC_WARD_MATERIAL_ID) {
 		vec3 specular = materialParams1.gba;
 		float alpha = materialParams2.x;
