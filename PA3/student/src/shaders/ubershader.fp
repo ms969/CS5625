@@ -118,8 +118,8 @@ float getShadowVal(vec4 shadowCoord, vec2 offset) {
  	
  	// count of unoccluded pixels
  	float m = 0.0;
- 	for (float i = -ShadowSampleWidth; i <= ShadowSampleWidth; i = i + 1.0) {
- 		for (float j = -ShadowSampleWidth; j <= ShadowSampleWidth; j = j + 1.0) {
+ 	for (float i = -ShadowSampleWidth; i <= ShadowSampleWidth; i += 1.0) {
+ 		for (float j = -ShadowSampleWidth; j <= ShadowSampleWidth; j += 1.0) {
 			float shadowMapZValue = getShadowVal(shadowCoord, vec2(i, j));
 			if (shadowCoord.z <= shadowMapZValue + bias) {
 		 		// unoccluded pixel
@@ -140,7 +140,45 @@ float getPCSSShadowMapVal(vec4 shadowCoord) {
  	float far = 100.0;
  	
  	// TODO PA3: Implement this function (see above).
- 	return 1.0;
+ 	// find d_blocker
+ 	float shadow_z = DepthToLinear(shadowCoord.z);
+ 	float searchWidth = LightWidth * (shadow_z - near) / shadow_z;
+ 	float searchRadius = floor(max(1.0, searchWidth/2.0));
+ 	
+ 	float shadowTotal = 0.0;
+ 	float shadowCount = 0.0;
+ 	for (float i = -searchRadius; i <= searchRadius; i+=1.0) {
+ 		for (float j = -searchRadius; j <= searchRadius; j+=1.0) {
+ 			float shadowVal = getShadowVal(shadowCoord, vec2(i, j));
+ 			if (shadowVal < shadowCoord.z + bias) {
+ 				shadowTotal += shadowVal;
+ 				shadowCount += 1.0;
+ 			}
+ 		}
+ 	}
+ 	if (shadowCount <= 0.0) {
+ 		return 1.0;
+ 	}
+ 	float d_blocker = shadowTotal / shadowCount;
+ 	d_blocker = DepthToLinear(d_blocker);
+ 	
+ 	// find w_penumbra
+ 	float w_pen = (shadow_z - d_blocker) * LightWidth / d_blocker;
+ 	w_pen = floor(max(1.0, w_pen));
+ 	
+ 	// count of unoccluded pixels
+ 	float m = 0.0;
+ 	for (float i = -w_pen; i <= w_pen; i += 1.0) {
+ 		for (float j = -w_pen; j <= w_pen; j += 1.0) {
+			float shadowMapZValue = getShadowVal(shadowCoord, vec2(i, j));
+			if (shadowCoord.z < shadowMapZValue + bias) {
+		 		// unoccluded pixel
+		 		m = m + 1.0;
+		 	}
+ 		}
+ 	}
+ 	float n = pow(w_pen * 2.0 + 1.0, 2.0);
+ 	return m/n;
 }
 
 /** Gets the shadow value based on the current shadowing mode
