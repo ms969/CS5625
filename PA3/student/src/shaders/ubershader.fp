@@ -66,8 +66,8 @@ vec3 decode(vec2 v)
 	return n;
 }
 
-// Converts the depth buffer value to a linear value
-// return value of this function can compare directly to z-buffer values (z to Normalized Device Coordinate - NDC)
+// Converts the depth buffer value to a linear value (Normalized Device Coordinate - NDC)
+// return value of this function can compare directly to z-buffer values
 float DepthToLinear(float value)
 {
 	float near = 0.1;
@@ -76,26 +76,30 @@ float DepthToLinear(float value)
 }
 
 /** Returns a binary value for if this location is shadowed. 0 = shadowed, 1 = not shadowed.
- * useful for PCF when you have to loop over a square
+ * helper for reading ShadowMap texture for PCF and PCSS
  */
-float getShadowVal(vec4 shadowCoord, vec2 offset) 
-{
+float getShadowVal(vec4 shadowCoord, vec2 offset) {
 	// TODO PA3: Implement this function (see above).
-	return 1.0;
+	// shadowCoord is [0,1], need to convert to pixel
+	vec2 textureCoord = vec2(shadowCoord.x*ShadowMapWidth, shadowCoord.y*ShadowMapHeight);
+	textureCoord = textureCoord + offset;
+	// converting back to [0,1] to read from texture
+	textureCoord = vec2(textureCoord.x/ShadowMapWidth, textureCoord.y/ShadowMapHeight);
+	return texture2D(ShadowMap, textureCoord).x;
 }
 
 /** Calculates regular shadow map algorithm shadow strength
  *
  * @param shadowCoord The location of the position in the light projection space
  */
- float getDefaultShadowMapVal(vec4 shadowCoord)
- {
+ float getDefaultShadowMapVal(vec4 shadowCoord) {
  	// TODO PA3: Implement this function (see above).
- 	// shadowCoord.z is the z-buffer value
- 	// feed it to the DepthToLinear function and convert to NDC
- 	float pointZValue = DepthToLinear(shadowCoord.z);
+	
+ 	// coord.z is the z-buffer value
+ 	float pointZValue = shadowCoord.z;
+ 	
  	// compare this to shadow map value with bias
- 	float shadowMapZValue = texture2D(ShadowMap, shadowCoord.xy).x;
+ 	float shadowMapZValue = texture2D(ShadowMap, shadowCoord.xy).z;
  	if (pointZValue > shadowMapZValue + bias) {
  		return 0.0;
  	} else {
@@ -107,24 +111,37 @@ float getShadowVal(vec4 shadowCoord, vec2 offset)
  *
  * @param shadowCoord The location of the position in the light projection space
  */
- float getPCFShadowMapVal(vec4 shadowCoord)
- {
+ float getPCFShadowMapVal(vec4 shadowCoord) {
  	// TODO PA3: Implement this function (see above).
- 	return 1.0;
+ 	// ShadowSampleWidth
+ 	
+ 	
+ 	// count of unoccluded pixels
+ 	float m = 0.0;
+ 	for (float i = -ShadowSampleWidth; i <= ShadowSampleWidth; i = i + 1.0) {
+ 		for (float j = -ShadowSampleWidth; j <= ShadowSampleWidth; j = j + 1.0) {
+			float shadowMapZValue = getShadowVal(shadowCoord, vec2(i, j));
+			if (shadowCoord.z <= shadowMapZValue + bias) {
+		 		// unoccluded pixel
+		 		m = m + 1.0;
+		 	}
+ 		}
+ 	}
+ 	float n = pow(ShadowSampleWidth * 2.0 + 1.0, 2.0);
+ 	return m/n;
  }
  
  /** Calculates PCSS shadow map algorithm shadow strength
  *
  * @param shadowCoord The location of the position in the light projection space
  */
- float getPCSSShadowMapVal(vec4 shadowCoord)
- {
+float getPCSSShadowMapVal(vec4 shadowCoord) {
  	float near = 0.1;
  	float far = 100.0;
  	
  	// TODO PA3: Implement this function (see above).
  	return 1.0;
- }
+}
 
 /** Gets the shadow value based on the current shadowing mode
  *
@@ -134,9 +151,9 @@ float getShadowVal(vec4 shadowCoord, vec2 offset)
  */
 float getShadowStrength(vec3 position) {
 	// TODO PA3: Transform position to ShadowCoord
-	vec4 ShadowCoord = LightMatrix * InverseViewMatrix * vec4(position, 1.0);
+	mat4 biasMatrix = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+	vec4 ShadowCoord = biasMatrix * LightMatrix * InverseViewMatrix * vec4(position, 1.0);
 	ShadowCoord = ShadowCoord/ShadowCoord.w;
-	//vec4 ShadowCoord = vec4(1.0);
 	
 	if (ShadowMode == DEFAULT_SHADOW_MAP) {
 		return getDefaultShadowMapVal(ShadowCoord);
