@@ -31,5 +31,50 @@ vec3 decode(vec2 v)
 void main()
 {
 	// TODO PA4: Implement SSAO. Your output color should be grayscale where white is unobscured and black is fully obscured.
-	gl_FragColor = vec4(1.0);
+	vec3 position = texture2DRect(PositionBuffer, gl_FragCoord.xy).xyz;
+	vec3 normal = decode(vec2(texture2DRect(DiffuseBuffer, gl_FragCoord.xy).a,
+	                          texture2DRect(PositionBuffer, gl_FragCoord.xy).a));
+	vec3 i;
+	if (dot(vec3(1.0, 0.0, 0.0), normal) != 0.0) {
+		i = vec3(1.0, 0.0, 0.0);
+	} else if (dot(j, normal) != 0.0) {
+		i = vec3(0.0, 1.0, 0.0);
+	} else {
+		i = vec3(0.0, 0.0, 1.0);
+	}
+	vec3 x_axis = cross(normal, i);
+	vec3 y_axis = cross(normal, x_axis);
+	// changes from fragment space to screenspace
+	mat3 fragmentToScreenspace = mat3(x_axis, y_axis, normal);
+	
+	// projection changes from screenspace to clipspace
+	float visibility = 0.0;
+	float sum = 0.0;
+	for (int i = 0; i < NumRays; i++) {
+		// 1. Apply the change-of-basis matrix discussed earlier to get a screen space ray.
+		vec3 screenSpaceUnitRay = fragmentToScreenspace * SampleRays[i];
+		// 2. Scale the transformed ray by the SampleRadius; this is the final sample ray.
+		vec3 screenSpaceRay = screenSpaceRay * SampleRadius;
+		// 3. Offset the screen space position of the current fragment by the scaled ray and project this point 
+		// into clip space using the ProjectionMatrix.
+		vec3 screenSamplePoint = screenSpaceRay + position;
+		vec4 clipSamplePoint = ProjectionMatrix * vec4(screenSamplePoint, 1.0);
+		// 4. Convert the x and y values of the clip space point into pixel values using a bit of math and ScreenSize. 
+		// Recall that clip space ranges over [-1, 1] in x and y. Since you’ve done a projection, remember to divide by w.
+		clipSamplePoint = clipSamplePoint / clipSamplePoint.w;
+		// shift everything up 1 to get [0, 2], and then multiply by 1/2 to get [0, 1], and then multiply by ScreenSize
+		vec3 sampleCoord = (clipSamplePoint.xy + vec2(1.0)) * 0.5 * ScreenSize;
+		float zValue = texture2DRect(PositionBuffer, sampleCoord).z;
+		
+		float weight = dot(normal, screenSpaceUnitRay);
+		sum += weight;
+		if (screenSamplePoint.z < zValue) {
+			// point is visible
+			visibility += weight;
+		}
+	}
+	
+	float color = visibility/sum;
+	
+	gl_FragColor = vec4(color, color, color, 1.0);
 }

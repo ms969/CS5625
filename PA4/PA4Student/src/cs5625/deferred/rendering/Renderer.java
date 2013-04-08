@@ -3,6 +3,7 @@ package cs5625.deferred.rendering;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
@@ -881,8 +882,18 @@ public class Renderer
 	{
 		// TODO PA4: Generate numRays random normalized vectors.
 		mSampleRays = new Vector3f[numRays];
+		Random rand = new Random();
 		for(int i = 0; i < numRays; i++) {
-			mSampleRays[i] = new Vector3f();
+			float u = rand.nextFloat();
+			float v = rand.nextFloat();
+			double theta = 2 * Math.PI * u;
+			double phi = Math.acos(2.0 * v - 1.0);
+			float x = (float) (Math.sin(theta)*Math.cos(phi));
+			float y = (float) (Math.sin(theta)*Math.sin(phi));
+			float z = (float) (Math.abs(Math.cos(theta)));
+//			Vector3f ray = new Vector3f(x, y, z);
+//			ray.normalize();
+			mSampleRays[i] = new Vector3f(x, y, z);
 		}
 	}
 	
