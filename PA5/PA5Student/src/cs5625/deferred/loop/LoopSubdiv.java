@@ -145,26 +145,42 @@ public class LoopSubdiv {
 			EdgeData e1 = edgeDS.getEdgeData(edgeIDs.get(1));
 			EdgeData e2 = edgeDS.getEdgeData(edgeIDs.get(2));
 			
-			
-			// get edges and vertices
-			ArrayList<Integer> vertexIDs = polygon.getAllVertices();
-			for (int i = 0; i < vertexIDs.size(); i++) {
-				int vID = vertexIDs.get(i);
-				
+			// v0 is common point between e0 and e2, v1 is common point between e0 and e1, v2: e1 and e2
+			VertexData v0, v1, v2;
+			if (e0.getVertex0() == e2.getVertex0() || e0.getVertex0() == e2.getVertex1()) {
+				v0 = edgeDS.getVertexData(e0.getVertex0());
+			} else {
+				v0 = edgeDS.getVertexData(e0.getVertex1());
 			}
 			
+			if (e0.getVertex0() == e1.getVertex0() || e0.getVertex0() == e1.getVertex1()) {
+				v1 = edgeDS.getVertexData(e0.getVertex0());
+			} else {
+				v1 = edgeDS.getVertexData(e0.getVertex1());
+			}
 			
+			if (e1.getVertex0() == e2.getVertex0() || e1.getVertex0() == e2.getVertex1()) {
+				v2 = edgeDS.getVertexData(e1.getVertex0());
+			} else {
+				v2 = edgeDS.getVertexData(e1.getVertex1());
+			}
+
+			int[] tris = new int[] {v0.getNewVertexID(), e0.getNewVertexID(), e2.getNewVertexID(), // tri0: v0, e0, e2
+									v1.getNewVertexID(), e1.getNewVertexID(), e2.getNewVertexID(), // tri1: v1, e1, e0
+									v2.getNewVertexID(), e2.getNewVertexID(), e1.getNewVertexID(), // tri2: v2, e2, e1
+									e0.getNewVertexID(), e1.getNewVertexID(), e2.getNewVertexID()}; // tri3: e0, e1, e1
 			
-			// first triangle: v0, v0n, 
-			
-			
+			newTriangles.put(tris);
 			
 		}
 		
-		this.mMesh = edgeDS.getMesh();
-		
-		
-		
+		Mesh newMesh = oldMesh.clone();
+		newMesh.setVertexData(newVertices);
+		newMesh.setNormalData(newNormals);
+		newMesh.setTexCoordData(newTexCoords);
+		newMesh.setEdgeData(newCreaseEdges);
+		newMesh.setPolygonData(newTriangles);
+		this.mMesh = newMesh;
 	}
 	
 	private Point3f oldVertexPositionShift(VertexData vertex,
@@ -176,13 +192,19 @@ public class LoopSubdiv {
 	private Point3f newVertexRegularCase(VertexData vertex0,
 			VertexData vertex1, VertexData topVertex, VertexData bottomVertex) {
 		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
 	private Point3f newVertexCreaseBoundaryCase(VertexData vertex0,
 			VertexData vertex1) {
-		// TODO Auto-generated method stub
-		return null;
+		Point3f v0pos = vertex0.mData.getPosition();
+		Point3f v1pos = vertex1.mData.getPosition();
+		v0pos.scale(0.5f);
+		v1pos.scale(0.5f);
+		Point3f newPosition = new Point3f();
+		newPosition.add(v0pos, v1pos);
+		return newPosition;
 	}
 
 	public Mesh getNewMesh()

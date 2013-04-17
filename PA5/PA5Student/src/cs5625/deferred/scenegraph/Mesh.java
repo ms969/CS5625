@@ -356,6 +356,7 @@ public abstract class Mesh implements OpenGLResourceObject
 	 * Returns the edge index buffer. Format is the same as the polygon buffer (with only
 	 * 2 indices per edge, of course). The edge buffer is not automatically initialized to all 
 	 * edges in the mesh; it might contain a subset of edges, depending on the application. 
+	 * MJ: use this for storing crease edges
 	 */
 	public IntBuffer getEdgeData()
 	{
@@ -365,6 +366,7 @@ public abstract class Mesh implements OpenGLResourceObject
 	/**
 	 * Sets edge index buffer. Format is the same as the polygon index buffer (with
 	 * only 2 indices per edge, of course).  
+	 * MJ: use this for storing crease edges
 	 */
 	public void setEdgeData(IntBuffer edges)
 	{
