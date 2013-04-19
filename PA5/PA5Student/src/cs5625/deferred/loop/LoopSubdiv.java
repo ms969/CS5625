@@ -50,6 +50,9 @@ public class LoopSubdiv {
 		IntBuffer newCreaseEdges = IntBuffer.allocate(newCreaseEdgesCount*2);
 		IntBuffer newTriangles = IntBuffer.allocate(newPolygonCount*3);
 		
+		int creaseCounter = 0;
+		int boundaryCounter = 0;
+		
 		// looping over the edges to create new vertices
 		Iterator<Integer> edgeIterator = edgeSet.iterator();
 		
@@ -66,6 +69,7 @@ public class LoopSubdiv {
 			if (edgeDS.isCreaseEdge(edgeID)) {
 				// crease edge
 				newVertexPosition = newVertexCreaseBoundaryCase(vertex0, vertex1);
+				creaseCounter++;
 			} else {
 				// get position of top vertex
 				ArrayList<Integer> topEdgesIDs = edgeDS.getOtherEdgesOfLeftFace(edgeID);
@@ -78,6 +82,7 @@ public class LoopSubdiv {
 				if (bottomEdgesIDs.size() == 0) {
 					// boundary edge
 					newVertexPosition = newVertexCreaseBoundaryCase(vertex0, vertex1);
+					boundaryCounter++;
 				} else {
 					EdgeData firstEdgeBottom = edgeDS.getEdgeData(bottomEdgesIDs.get(0));
 					int bottomVertexIndex = (firstEdgeBottom.getVertex0() == edge.getVertex0()) ? firstEdgeBottom.getVertex1() : firstEdgeBottom.getVertex0();
@@ -95,6 +100,9 @@ public class LoopSubdiv {
 			newVertices.put(newPositionArray);
 			newVertexIndex++;
 		}
+		
+		System.out.println("Crease Edges: " + creaseCounter);
+		System.out.println("Boundary Edges: " + boundaryCounter);
 		
 		// loop over the old vertices to edit their position
 		Iterator<Integer> vertexIterator = vertexSet.iterator();

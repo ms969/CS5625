@@ -101,8 +101,8 @@ public class SubdivSceneController extends SceneController
 		{
 			// TODO PA5: This is where you change the base meshes.
 			ccMesh = new CubeQuadMesh().getQuadMesh();
-			loopMesh = new ThreeTriangleMesh().getTriMesh();
-			//loopMesh = (Trimesh)Geometry.load("models/example_cube_tris.obj", true, true).get(0).getMeshes().get(0);
+			//loopMesh = new ThreeTriangleMesh().getTriMesh();
+			loopMesh = (Trimesh)Geometry.load("models/example_cube_tris.obj", true, true).get(0).getMeshes().get(0);
 			
 			visibleMesh = loopMesh;
 			isLoop = true;
