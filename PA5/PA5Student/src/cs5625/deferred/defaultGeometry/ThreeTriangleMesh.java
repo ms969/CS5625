@@ -58,6 +58,8 @@ public class ThreeTriangleMesh {
 		FloatBuffer texCoordData = Buffers.newDirectFloatBuffer(2 * numVertices);
 		FloatBuffer normalData = Buffers.newDirectFloatBuffer(3 * numVertices);
 		
+		IntBuffer edgeData = Buffers.newDirectIntBuffer(0);
+		
 		positionData.rewind();
 		indexData.rewind();
 		
@@ -67,6 +69,7 @@ public class ThreeTriangleMesh {
 		this.mMesh.setVertexData(positionData);
 		this.mMesh.setNormalData(normalData);
 		this.mMesh.setTexCoordData(texCoordData);	
+		this.mMesh.setEdgeData(edgeData);
 	}
 	
 	public Trimesh getTriMesh(){

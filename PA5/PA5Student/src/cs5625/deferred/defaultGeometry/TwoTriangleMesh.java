@@ -31,6 +31,8 @@ public class TwoTriangleMesh {
 		
 		IntBuffer indexData = Buffers.newDirectIntBuffer(3 * numTris);
 		
+		IntBuffer edgeData = Buffers.newDirectIntBuffer(0);
+		
 		indexData.put(planeTriangles);
 		
 		positionData.rewind();
@@ -40,7 +42,8 @@ public class TwoTriangleMesh {
 		this.mMesh.setVertexData(positionData);
 		this.mMesh.setPolygonData(indexData);
 		this.mMesh.setNormalData(normalData);
-		this.mMesh.setTexCoordData(texCoordData);		
+		this.mMesh.setTexCoordData(texCoordData);	
+		this.mMesh.setEdgeData(edgeData);
 	}
 	
 	public Trimesh getTriMesh(){

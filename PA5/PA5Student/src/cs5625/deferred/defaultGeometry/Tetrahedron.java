@@ -34,6 +34,8 @@ private Trimesh mMesh;
 		FloatBuffer texCoordData = Buffers.newDirectFloatBuffer(2 * numVertices);
 		FloatBuffer normalData = Buffers.newDirectFloatBuffer(3 * numVertices);
 		
+		IntBuffer edgeData = Buffers.newDirectIntBuffer(0);
+		
 		positionData.put(cubeVerts);
 		
 		IntBuffer indexData = Buffers.newDirectIntBuffer(3 * numTris);
@@ -47,7 +49,8 @@ private Trimesh mMesh;
 		this.mMesh.setVertexData(positionData);
 		this.mMesh.setPolygonData(indexData);
 		this.mMesh.setNormalData(normalData);
-		this.mMesh.setTexCoordData(texCoordData);		
+		this.mMesh.setTexCoordData(texCoordData);
+		this.mMesh.setEdgeData(edgeData);
 	}
 	
 	public Trimesh getTriMesh(){

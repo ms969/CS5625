@@ -13,6 +13,9 @@ import javax.vecmath.Quat4f;
 import cs5625.deferred.catmullclark.CCSubdiv;
 import cs5625.deferred.datastruct.EdgeDS;
 import cs5625.deferred.defaultGeometry.CubeQuadMesh;
+import cs5625.deferred.defaultGeometry.Tetrahedron;
+import cs5625.deferred.defaultGeometry.ThreeTriangleMesh;
+import cs5625.deferred.defaultGeometry.TwoTriangleMesh;
 import cs5625.deferred.loop.LoopSubdiv;
 import cs5625.deferred.materials.UnshadedMaterial;
 import cs5625.deferred.misc.Util;
@@ -98,7 +101,8 @@ public class SubdivSceneController extends SceneController
 		{
 			// TODO PA5: This is where you change the base meshes.
 			ccMesh = new CubeQuadMesh().getQuadMesh();
-			loopMesh = (Trimesh)Geometry.load("models/example_cube_tris.obj", true, true).get(0).getMeshes().get(0);
+			loopMesh = new ThreeTriangleMesh().getTriMesh();
+			//loopMesh = (Trimesh)Geometry.load("models/example_cube_tris.obj", true, true).get(0).getMeshes().get(0);
 			
 			visibleMesh = loopMesh;
 			isLoop = true;
