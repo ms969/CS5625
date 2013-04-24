@@ -43,5 +43,17 @@ void main()
 	int materialID = int(materialParams1.x);
 	
 	// TODO PA3 Prereq (Optional): Paste in your vizualization shader if you feel like it.
-	gl_FragColor = vec4(0.0);
+	vec3 tangent = decode(materialParams2.zw);
+	vec3 bitangent = normalize(cross(normal, tangent)*float(materialID));
+	
+	if (VisMode == NORMALS_MODE) {
+		// display normal
+		gl_FragColor = vec4((normalize(normal)+1.0)*0.5, 1.0);
+	} else if (VisMode == TANGENTS_MODE) {
+		// display tangent
+		gl_FragColor = vec4((normalize(tangent)+1.0)*0.5, 1.0);
+	} else if (VisMode == BITANGENTS_MODE) {
+		// display bitangent
+		gl_FragColor = vec4((normalize(bitangent)+1.0)*0.5, 1.0);
+	}
 }

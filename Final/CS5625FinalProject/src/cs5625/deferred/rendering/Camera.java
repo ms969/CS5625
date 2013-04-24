@@ -24,6 +24,8 @@ public class Camera extends SceneObject
 	private float mNear = 0.1f;
 	private float mFar = 100.0f;
 	
+	private boolean mIsCubeMapCamera = false;
+	
 	private boolean mIsShadowMapCamera = false;
 	
 	/**
@@ -81,6 +83,23 @@ public class Camera extends SceneObject
 	}
 	
 	/**
+	 * Returns the camera far plane distance.
+	 */
+	public boolean getIsCubeMapCamera()
+	{
+		return mIsCubeMapCamera;
+	}
+
+	/**
+	 * Sets the camera far plane distance.
+	 * @param far The far plane; must be farther away than the near plane.
+	 */
+	public void setIsCubeMapCamera(boolean isCubeMapCamera)
+	{
+		mIsCubeMapCamera = isCubeMapCamera;
+	}
+	
+	/**
 	 * Returns if this is a shadow map camera
 	 */
 	public boolean getIsShadowMapCamera()
@@ -116,4 +135,5 @@ public class Camera extends SceneObject
 				0f, 0f, -(mFar + mNear) / (mFar - mNear), -2 * mFar * mNear / (mFar - mNear),
 				0f, 0f, -1f, 0f);
 	}
+
 }

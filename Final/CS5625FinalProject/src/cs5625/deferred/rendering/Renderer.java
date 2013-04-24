@@ -9,12 +9,14 @@ import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.glu.GLU;
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Color3f;
+import javax.vecmath.Matrix3f;
 import javax.vecmath.Matrix4f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
 
 import cs5625.deferred.materials.Material;
 import cs5625.deferred.materials.TextureCubeMap;
+import cs5625.deferred.materials.TextureDynamicCubeMap;
 import cs5625.deferred.materials.Texture.Datatype;
 import cs5625.deferred.materials.Texture.Format;
 import cs5625.deferred.materials.UnshadedMaterial;
@@ -59,6 +61,9 @@ public class Renderer
 	/* The shadow map FBOs */
 	protected FramebufferObject mShadowMapFBO;
 	
+	/* The dynamic cube map FBO. */
+	protected FramebufferObject mDynamicCubeMapFBO;
+	
 	/* Name the indices in the GBuffer so code is easier to read. */
 	protected final int GBuffer_DiffuseIndex = 0;
 	protected final int GBuffer_PositionIndex = 1;
@@ -81,7 +86,7 @@ public class Renderer
 
 	/* The "ubershader" used for performing deferred shading on the gbuffer, 
 	 * and the silhouette shader to compute edges for toon rendering. */
-	private ShaderProgram mUberShader, mSilhouetteShader;
+	private ShaderProgram mUberShader, mSilhouetteShader, mBlurShader;
 	private boolean mEnableToonShading = false;
 	
 	/* Material for rendering generic wireframes and crease edges, and flag to enable/disable that. */
@@ -130,9 +135,33 @@ public class Renderer
 	private int mLightWidth = 16;
 	private int mLightWidthUniformLocation = -1;
 	
+	private int mCameraInverseRotationUniformLocation = -1;
+	
 	/* The size of the light uniform arrays in the ubershader. */
 	private int mMaxLightsInUberShader = 40;
 	
+	/* The size of the dynamic cube map uniform arrays in the ubershader. */
+	private int mMaxDynamicCubeMapsUberShader = 3;	
+	
+	/* Size of the dynamic cube maps (in pixels) */
+	private int mDynamicCubeMapSize = 1024;
+	
+	/* The static cube map */
+	private TextureCubeMap mStaticCubeMap = null;
+	private int mStaticCubeMapIndex = -1;
+		
+	/* The list of dynamic cube maps */
+	private ArrayList<TextureDynamicCubeMap> mDynamicCubeMaps = new ArrayList<TextureDynamicCubeMap>();
+	private int mDynamicCubeMapBaseIndex = -1;
+	/* The number of currently used dynamic cube maps */
+	private int mNumDynamicCubeMaps = 0;
+	
+	/* The dynamic cube maps blur settings */
+	private boolean mBlurDynamicCubeMaps = false;
+	private int mBlurWidthX = 16;
+	private int mBlurWidthY = 16;
+	private float mBlurVarianceX = 128.0f;
+	private float mBlurVarianceY = 128.0f;
 	
 	/**
 	 * Renders a single frame of the scene. This is the main method of the Renderer class.
@@ -147,31 +176,139 @@ public class Renderer
 				
 		try
 		{
-			/* Reset lights array. It will be re-filled as the scene is traversed. */
-			mLights.clear();
+			/* The number of times we should render the scene */
+			int numPasses = 1;
+			boolean isFinalPass = false;
 			
-			if (shadowCamera != null) {
-				fillGBuffer(gl, sceneRoot, shadowCamera);
+			/* Save the original camera parameters and view port size */
+			float originalWidth = mViewportWidth, originalHeight = mViewportHeight;
+			Point3f originalPosition = camera.getPosition();
+			Quat4f originalOrientation = camera.getOrientation();
+			float originalFov = camera.getFOV();			
+						
+			if (mPreviewIndex != -1) {
+				/* If we are in preview mode, do not render the dynamic cube maps */				
+				numPasses = 1;
+			} else {
+				numPasses = 6 * mNumDynamicCubeMaps + 1;
+								
+				// TODO PA2: Resize the g-buffer to the size of the dynamic cube maps,
+				// using the mDynamicCubeMapSize variable.
+				resize(drawable, mDynamicCubeMapSize, mDynamicCubeMapSize);
 			}
 			
-			/* 1. Fill the gbuffer given this scene and camera. */ 
-			fillGBuffer(gl, sceneRoot, camera);
+			for (int i = 0; i < numPasses; ++i) {
 			
-			/* 2. Compute gradient buffer based on positions and normals, used for toon shading. */
-			computeGradientBuffer(gl);
-			
-			/* 3. Apply deferred lighting to the g-buffer. At this point, the opaque scene has been rendered. */
-			lightGBuffer(gl, camera, shadowCamera);
+				/* Reset lights array. It will be re-filled as the scene is traversed. */
+				mLights.clear();
+				
+				int dynamicCubeMapIndex = -1; /* Index of the dynamic cube map */
+				int dynamicCubeMapFace = -1; /* The face of the dynamic cube map */
+				
+				/* Check whether this is the final pass (aka. all dynamic cube maps have been generated) */
+				if (i == numPasses -1) {
+					isFinalPass = true;
+				}
+				
+				/* This is the final render pass, so we render using the screen FBO. */
+				if (isFinalPass) {
 
-			/* 4. If we're supposed to preview one gbuffer texture, do that now. 
-			 *    Otherwise, envoke the final render pass (optional post-processing). */
-			if (mPreviewIndex >= 0 && mPreviewIndex < GBuffer_FinalSceneIndex)
-			{
-				Util.renderTextureFullscreen(gl, mGBufferFBO.getColorTexture(mPreviewIndex));
-			}
-			else
-			{			
-				finalPass(gl);					 								 
+					// TODO PA2: (1) Restore the original g-buffer size and camera positions;
+					// (2) If mBlurDynamicCubeMaps is set to true, blur all dynamic
+					// cube maps, using the mBlur* variables to get the horizontal
+					// and vertical blur width and variance.		
+					resize(drawable, (int)originalWidth, (int)originalHeight);
+					camera.setPosition(originalPosition);
+					camera.setFOV(originalFov);
+					camera.setOrientation(originalOrientation);
+					camera.setIsCubeMapCamera(false);
+					
+				} else { /* Render the scene from the corresponding dynamic cube map point of view. */
+					
+					dynamicCubeMapIndex = i / 6; /* Index of the dynamic cube map */
+					dynamicCubeMapFace = i % 6; /* The face of the dynamic cube map */
+					
+					/* Hide the object (if any) attached to the dynamic cube map. */
+					if (mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterObject() != null) {
+						mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterObject().setVisible(false);
+					}
+					
+					// TODO PA2: Prepare the camera for a cube map rendering mode:
+					// indicate that the camera is used for environment rendering, 
+					// change the position, the FOV and the orientation so that it 
+					// renders the environment for the given face (dynamicCubeMapFace).
+					//leftrighttopbottomfrontback
+					camera.setFOV(90);
+					camera.setIsCubeMapCamera(true);
+					switch(dynamicCubeMapFace) {
+					case 0: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 1: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (3*Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 2: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(1f,0f,0f,(float) (3*Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 3: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(1f,0f,0f,(float) (Math.PI/2));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 4: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,0f);
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					case 5: {camera.setPosition(mDynamicCubeMaps.get(dynamicCubeMapIndex).getCenterPoint());
+						AxisAngle4f a = new AxisAngle4f(0f,1f,0f,(float) (Math.PI));
+						Quat4f q = new Quat4f();
+						q.set(a);
+						camera.setOrientation(q);
+						break;
+						}
+					}
+				}	
+			
+				if (shadowCamera != null) {
+					fillGBuffer(gl, sceneRoot, shadowCamera);
+				}
+				
+				/* 1. Fill the gbuffer given this scene and camera. */ 
+				fillGBuffer(gl, sceneRoot, camera);
+				
+				/* 2. Compute gradient buffer based on positions and normals, used for toon shading. */
+				computeGradientBuffer(gl);
+				
+				/* 3. Apply deferred lighting to the g-buffer. At this point, the opaque scene has been rendered. */
+				lightGBuffer(gl, camera, shadowCamera);
+	
+				/* 4. If we're supposed to preview one gbuffer texture, do that now. 
+				 *    Otherwise, envoke the final render pass (optional post-processing). */
+				if (mPreviewIndex >= 0 && mPreviewIndex < GBuffer_FinalSceneIndex)
+				{
+					Util.renderTextureFullscreen(gl, mGBufferFBO.getColorTexture(mPreviewIndex));
+				}
+				else
+				{			
+					finalPass(gl);					 								 
+				}
 			}
 		}
 		catch (Exception err)
@@ -293,8 +430,20 @@ public class Renderer
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 		
-		GLU glu = GLU.createGLU(gl);
-		glu.gluPerspective(camera.getFOV(), mViewportWidth / mViewportHeight, camera.getNear(), camera.getFar());
+		//GLU glu = GLU.createGLU(gl);
+		//glu.gluPerspective(camera.getFOV(), mViewportWidth / mViewportHeight, camera.getNear(), camera.getFar());
+		
+		float zNear = camera.getNear();
+		float zFar = camera.getFar();
+		float aspect = mViewportWidth / mViewportHeight;
+		float fH = (float)Math.tan( (camera.getFOV() / 360.0f * (float)Math.PI) ) * zNear;
+		float fW = fH * aspect;
+		if (camera.getIsCubeMapCamera()) {
+			/* Swap the top and bottom, when we render from a perspective camera */
+			gl.glFrustum( fW, -fW, -fH, fH, zNear, zFar );
+		} else {
+			gl.glFrustum( -fW, fW, -fH, fH, zNear, zFar );
+		}
 		
 		/* Update the modelview matrix with this camera's eye transform. */
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
@@ -440,7 +589,24 @@ public class Renderer
 		
 		/* Ubershader needs to know how many lights. */
 		gl.glUniform1i(mNumLightsUniformLocation, mLights.size());	
-		gl.glUniform1i(mEnableToonShadingUniformLocation, (mEnableToonShading ? 1 : 0));			
+		gl.glUniform1i(mEnableToonShadingUniformLocation, (mEnableToonShading ? 1 : 0));
+		
+		// TODO PA2: Set the inverse camera rotation matrix uniform and bind the static
+		// and the active dynamic cube maps (given by mNumDynamicCubeMaps).
+		// Hint: Make sure you upload the inverse world space camera rotation matrix,
+		// using glUniformMatrix3fv.
+		FloatBuffer bf = FloatBuffer.allocate(9);
+		Matrix3f rotation = new Matrix3f();
+		rotation.invert(camera.getWorldSpaceRotationMatrix3f());
+		float f[] = new float[]{rotation.m00,rotation.m01,rotation.m02,rotation.m10,rotation.m11,rotation.m12,rotation.m20,rotation.m21,rotation.m22};
+		bf = FloatBuffer.wrap(f);
+		gl.glUniformMatrix3fv(mCameraInverseRotationUniformLocation, 1, true, bf);
+		
+		if(mStaticCubeMap != null)
+			mStaticCubeMap.bind(gl, mStaticCubeMapIndex);
+		for (int i = 0; i < mNumDynamicCubeMaps; i++) {
+			mDynamicCubeMaps.get(i).bind(gl, mDynamicCubeMapBaseIndex + i);
+		}
 		
 		gl.glUniform1i(mHasShadowMapsUniformLocation, shadowCamera == null ? 0 : 1);
 		gl.glUniform1i(mShadowModeUniformLocation, mShadowMode);
@@ -456,8 +622,8 @@ public class Renderer
 			Matrix4f lightView = shadowCamera.getViewMatrix();
 			Matrix4f l = new Matrix4f();
 			l.mul(lightProjection, lightView);
-			float f[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
-			FloatBuffer fb = FloatBuffer.wrap(f);
+			float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
+			FloatBuffer fb = FloatBuffer.wrap(f1);
 			gl.glUniformMatrix4fv(mLightMatrixUniformLocation, 1, true, fb);
 			
 			
@@ -489,6 +655,12 @@ public class Renderer
 		if (shadowCamera != null) 
 		{
 			mShadowMapFBO.getDepthTexture().unbind(gl);
+		}
+		
+		// TODO PA2: Unbind the static and active dynamic cube maps.
+		mStaticCubeMap.unbind(gl);
+		for (int i = 0; i < mNumDynamicCubeMaps; i++) {
+			mDynamicCubeMaps.get(i).unbind(gl);
 		}
 		
 		for (int i = 0; i < GBuffer_FinalSceneIndex; ++i)
@@ -836,6 +1008,41 @@ public class Renderer
 		return mKernelWidth;
 	}
 	
+
+	/**
+	 * Gets the static Cube Map
+	 */
+	public TextureCubeMap getStaticCubeMap()
+	{
+		return mStaticCubeMap;
+	}
+
+	/**
+	 * Get the next available (aka. not used) dynamic cube map
+	 */
+	public TextureDynamicCubeMap getNewDynamicCubeMap()
+	{
+		if (mNumDynamicCubeMaps == mMaxDynamicCubeMapsUberShader) {
+			return null;
+		}		
+		
+		return mDynamicCubeMaps.get(mNumDynamicCubeMaps++);
+	}
+	
+	/**
+	 * Set whether or not the dynamic cube maps will be blurred.
+	 */
+	public void setBlurDynamicCubeMaps(boolean blurDyamicCubeMaps) {
+		mBlurDynamicCubeMaps = blurDyamicCubeMaps;
+	}
+	
+	/**
+	 * Get whether or not the dynamic cube maps will be blurred.
+	 */
+	public boolean getBlurDynamicCubeMaps() {
+		return mBlurDynamicCubeMaps;
+	}
+	
 	/**
 	 * Sets the shadow map bias
 	 */
@@ -911,6 +1118,17 @@ public class Renderer
 			gl.glUniform1i(mUberShader.getUniformLocation(gl, "MaterialParams1Buffer"), 2);
 			gl.glUniform1i(mUberShader.getUniformLocation(gl, "MaterialParams2Buffer"), 3);
 			gl.glUniform1i(mUberShader.getUniformLocation(gl, "SilhouetteBuffer"), 4);
+			
+			/* Set cube map (static and dynamic) indices, since they never have to change. */
+			mStaticCubeMapIndex = 5;
+			gl.glUniform1i(mUberShader.getUniformLocation(gl, "StaticCubeMapTexture"), mStaticCubeMapIndex);
+			
+			mDynamicCubeMapBaseIndex = 6;
+			gl.glUniform1i(mUberShader.getUniformLocation(gl, "DynamicCubeMapTextures"), mDynamicCubeMapBaseIndex);
+			for (int i = 0; i < mMaxDynamicCubeMapsUberShader; ++i) {
+				gl.glUniform1i(mUberShader.getUniformLocation(gl, "DynamicCubeMapTexture" + i), mDynamicCubeMapBaseIndex + i);
+			}
+			
 			gl.glUniform3f(mUberShader.getUniformLocation(gl, "SkyColor"), 0.1f, 0.1f, 0.1f);
 			gl.glUniform1i(mUberShader.getUniformLocation(gl, "ShadowMap"), mShadowTextureLocation);
 			mUberShader.unbind(gl);			
@@ -921,6 +1139,7 @@ public class Renderer
 			mLightAttenuationsUniformLocation = mUberShader.getUniformLocation(gl, "LightAttenuations");
 			mNumLightsUniformLocation = mUberShader.getUniformLocation(gl, "NumLights");
 			mEnableToonShadingUniformLocation = mUberShader.getUniformLocation(gl, "EnableToonShading");
+			mCameraInverseRotationUniformLocation = mUberShader.getUniformLocation(gl, "CameraInverseRotation");
 			
 			/* Shadow map uniforms */
 			mHasShadowMapsUniformLocation = mUberShader.getUniformLocation(gl, "HasShadowMaps");
@@ -985,9 +1204,37 @@ public class Renderer
 			gl.glUniform1i(mVisShader.getUniformLocation(gl, "MaterialParams2Buffer"), 3);
 			mVisShader.unbind(gl);
 			
+			/* Load the blur shader. */
+			mBlurShader = new ShaderProgram(gl, "shaders/gaussian_blur");
+			mBlurShader.bind(gl);
+			gl.glUniform1i(mBlurShader.getUniformLocation(gl, "SourceTexture"), 0);
+			mBlurShader.unbind(gl);
+			
 			/* Load the material used to render mesh edges (e.g. creases for subdivs). */
 			mWireframeMaterial = new UnshadedMaterial(new Color3f(0.8f, 0.8f, 0.8f));
 			mWireframeMarkedEdgeMaterial = new UnshadedMaterial(new Color3f(1.0f, 0.0f, 1.0f));
+			
+			/* Load the static cube map images */
+			mStaticCubeMap = TextureCubeMap.load(gl, "textures/cubemap/backyard_", ".png", false);
+			mStaticCubeMap.setCubeMapIndex(1); /* The static cube map has index 1. */
+			mStaticCubeMap.setBlurShaderProgram(mBlurShader);
+//			mStaticCubeMap.setBlurWidthX(16);
+//			mStaticCubeMap.setBlurVarianceX(8.0f * 8.0f);
+//			mStaticCubeMap.setBlurWidthY(16);
+//			mStaticCubeMap.setBlurVarianceY(8.0f * 8.0f);
+//			mStaticCubeMap.Blur(gl);
+			
+			/* Allocate space for the maximum number of dynamic cube maps */
+			for (int i = 0; i < mMaxDynamicCubeMapsUberShader; ++i) {
+				TextureDynamicCubeMap currDynamicCubeMap = TextureDynamicCubeMap.create(gl, mDynamicCubeMapSize, false);
+				currDynamicCubeMap.setCubeMapIndex(i + 2); /* The dynamic cube maps start from index 2. */
+				currDynamicCubeMap.setBlurShaderProgram(mBlurShader);
+
+				mDynamicCubeMaps.add(currDynamicCubeMap);
+			}
+			
+			/* Create the dynamic cube map FBO, that will be used for the final offscreen rendering of the faces of each dynamic cube map object. */
+			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false);
 			
 			/* Make sure nothing went wrong. */
 			OpenGLException.checkOpenGLError(gl);
@@ -1043,6 +1290,7 @@ public class Renderer
 	public void releaseGPUResources(GL2 gl)
 	{
 		mGBufferFBO.releaseGPUResources(gl);
+		mDynamicCubeMapFBO.releaseGPUResources(gl);
 		mUberShader.releaseGPUResources(gl);
 		mSilhouetteShader.releaseGPUResources(gl);
 		mBloomShader.releaseGPUResources(gl);
