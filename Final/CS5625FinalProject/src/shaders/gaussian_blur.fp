@@ -30,7 +30,7 @@ void main()
 {
 	int maxd = 2*KernelWidth + 1;
 	vec3 sum;
-	int weight = 0;
+	float weight = 0;
 	
 	for (int i = -maxd; i < maxd + 1; i++) {
 		weight =  exp(-abs(i)*abs(i)/(2.0*KernelVariance));
