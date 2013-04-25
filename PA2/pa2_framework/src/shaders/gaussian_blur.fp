@@ -33,7 +33,7 @@ void main()
 	int weight = 0;
 	
 	for (int i = -maxd; i < maxd + 1; i++) {
-		weight =  exp(-abs(i)*abs(i)/(2.0*KernelVariance));
+		weight = exp(-abs(i)*abs(i)/(2.0*KernelVariance));
 		if(Axis == 0) {
 			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x + float(i)/TextureSize, gl_TexCoord[0].y));
 		}
