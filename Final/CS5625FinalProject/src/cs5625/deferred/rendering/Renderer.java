@@ -1,5 +1,6 @@
 package cs5625.deferred.rendering;
 
+import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +15,8 @@ import javax.vecmath.Matrix4f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
 
+import cs5625.deferred.custom.ParticleSystem;
+import cs5625.deferred.materials.LambertianMaterial;
 import cs5625.deferred.materials.Material;
 import cs5625.deferred.materials.TextureCubeMap;
 import cs5625.deferred.materials.TextureDynamicCubeMap;
@@ -719,6 +722,10 @@ public class Renderer
 		{
 			mLights.add((Light)obj);
 		}
+		else if (obj instanceof ParticleSystem) 
+		{
+			renderParticles(gl, camera, (ParticleSystem) obj);
+		}
 		
 		/* Render this object's children. */
 		for (SceneObject child : obj.getChildren())
@@ -833,8 +840,25 @@ public class Renderer
 		OpenGLException.checkOpenGLError(gl);
 	}
 	
+	private void renderParticles(GL2 gl, Camera camera, ParticleSystem p) throws OpenGLException {
+		Geometry sphere = null;
+		try {
+			sphere = Geometry.load("models/plane.obj", false, false).get(0);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		sphere.setScale(0.003f);
+		sphere.getMeshes().get(0).setMaterial(new LambertianMaterial(new Color3f(1.45f,1.45f,1.5f)));
+		float[] arr =  p.getParticlePositions().array();
+		for (int i = 0; i < arr.length/3; i++) {
+			sphere.setPosition(new Point3f(arr[3*i],arr[3*i+1],arr[3*i+2]));
+			renderObject(gl,camera,sphere);
+		}
+	}
+	
 	/**
-	 * Binds all custom vertex attributes required by a mesh's material to buffers provided
+	 * Binds all custom vertex attributes required by a mesh's` material to buffers provided
 	 * by that mesh.
 	 * 
 	 * @param gl The OpenGL state.

@@ -11,6 +11,7 @@ import java.awt.event.MouseWheelListener;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
 
+import cs5625.deferred.custom.CustomSceneController;
 import cs5625.deferred.rendering.Camera;
 import cs5625.deferred.rendering.Renderer;
 import cs5625.deferred.scenegraph.SceneObject;
@@ -81,7 +82,8 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 		//globalController = new ManyLightsSceneController();
 		//globalController = new MaterialTestSceneController();
 		//globalController = new TexturesTestSceneController();
-		globalController = new ShadowMapSceneController();
+		//globalController = new ShadowMapSceneController();
+		globalController = new CustomSceneController();
 	}
 	
 	/*
