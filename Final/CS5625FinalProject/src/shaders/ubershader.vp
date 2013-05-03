@@ -11,7 +11,31 @@
  * @date 2012-03-24
  */
 
+uniform int RenderSnow;
+uniform sampler2D SnowOcclusionMap;
+uniform sampler3D NoiseMap;
+
+// gl_Vertex in object space
+// ModelView takes object space to world, and then camera (eye) space
+
 void main()
 {
+	// calculate fp
+	// need to convert gl_Normal to eye space. Now up is positive y
+	vec3 eyespaceNormal = normalize(gl_NormalMatrix * gl_Normal);
+	vec3 eyespaceUp = vec3(0.0, 1.0, 0.0);
+	float cos_theta = dot(eyespaceNormal, eyespaceUp);
+	float theta = arccos(cos_theta);
+	float f_inc = 0.0;
+	if (theta >= 0.0 && theta <= PI/2.0) {
+		float noise = texture3D(NoiseMap, gl_MultiTexCoord0).x;
+		f_inc = cos_theta + noise
+	}
+	// occlusion map, depth for f_e
+	// have occlusion map. use x and z as index into it. Have to scale it somehow. 
+	// compare the current depth with the depth read back from map
+	// (take multiple samples from the surrounding square for better gradient)
+	// that should give you both components of fp
+	// once we have fp, scale the y direction up according to fp's value
 	gl_Position = ftransform();
 }

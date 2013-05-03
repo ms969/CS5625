@@ -24,9 +24,14 @@ public class Camera extends SceneObject
 	private float mNear = 0.1f;
 	private float mFar = 100.0f;
 	
+	/* Orthographic camera attributes */
+	private float mWidth, mHeight;
+	
 	private boolean mIsCubeMapCamera = false;
 	
 	private boolean mIsShadowMapCamera = false;
+	
+	private boolean mIsSnowOcclusionMapCamera = false;
 	
 	/**
 	 * Returns the camera field of view angle, in degrees.
@@ -82,6 +87,22 @@ public class Camera extends SceneObject
 		mFar = far;
 	}
 	
+	public float getWidth() {
+		return mWidth;
+	}
+	
+	public void setWidth(float width) {
+		mWidth = width;
+	}
+	
+	public float getHeight() {
+		return mHeight;
+	}
+	
+	public void setHeight(float height) {
+		mHeight = height;
+	}
+	
 	/**
 	 * Returns the camera far plane distance.
 	 */
@@ -115,6 +136,19 @@ public class Camera extends SceneObject
 		mIsShadowMapCamera = isShadowMapCamera;
 	}
 	
+	/**
+	 * Returns if this is a snow occlusion camera
+	 */
+	public boolean getIsSnowOcclusionMapCamera() {
+		return mIsSnowOcclusionMapCamera;
+	}
+	
+	/**
+	 * Sets snow occlusion camera state
+	 */
+	public void setIsSnowOcclusionMapCamera(boolean isSnowOcclusionCamera) {
+		mIsSnowOcclusionMapCamera = isSnowOcclusionCamera;
+	}
 	
 	/**
 	 *  Get the view matrix that send points from world space into this camera local space 

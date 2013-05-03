@@ -10,8 +10,12 @@ import java.awt.event.MouseWheelListener;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
+import javax.vecmath.AxisAngle4f;
+import javax.vecmath.Point3f;
+import javax.vecmath.Quat4f;
 
 import cs5625.deferred.custom.CustomSceneController;
+import cs5625.deferred.misc.Util;
 import cs5625.deferred.rendering.Camera;
 import cs5625.deferred.rendering.Renderer;
 import cs5625.deferred.scenegraph.SceneObject;
@@ -47,6 +51,8 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 	 */
 	protected boolean isShadowCamMode = false;
 	protected boolean moveShadowCam = false;
+	
+	protected Camera mSnowCamera = new Camera();
 	
 	@SuppressWarnings("unused")
 	private static SceneController globalController = null;
@@ -128,7 +134,9 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 	 */
 	public void renderGL(GLAutoDrawable drawable)
 	{
-		mRenderer.render(drawable, mSceneRoot, isShadowCamMode ? mShadowCamera : mCamera, !isShadowCamMode && hasShadows ? mShadowCamera : null);
+		mRenderer.render(drawable, mSceneRoot, isShadowCamMode ? mShadowCamera : mCamera, 
+				!isShadowCamMode && hasShadows ? mShadowCamera : null, 
+				mRenderer.getRenderSnow() ? mSnowCamera : null);
 	}
 
 	/**
@@ -141,6 +149,8 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 		mRenderer = new Renderer();
 		mRenderer.init(drawable);
 		mShadowCamera.setIsShadowMapCamera(true);
+		mSnowCamera.setIsSnowOcclusionMapCamera(true);
+		
 		initializeScene();
 	}
 	
@@ -168,7 +178,7 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 	 */
 	public void resizeGL(GLAutoDrawable drawable, int width, int height)
 	{
-		mRenderer.resize(drawable, width, height);
+		mRenderer.resize(drawable, width, height, mSnowCamera);
 	}
 
 	/**
@@ -203,6 +213,13 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 	 * 'v'/'V': Decrease/Increase the bloom variance.
 	 * 'c'/'C': Decrease/Increase the bloom threshold.
 	 * 'x'/'X': Decrease/Increase the bloom width.
+	 * 
+	 * 's': toggle control of shadow light camera.
+	 * 'd'/'D': Decrease/Increase shadow map bias.
+	 * 'a': Switch between the 3 types of shadow map rendering.
+	 * 'f'/'F': Decrease/Increase the shadow map sample width.
+	 * 
+	 * 'o': Toggles rendering of snow accumulation effects.
 	 */
 	@Override
 	public void keyTyped(KeyEvent key)
@@ -312,6 +329,10 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 				System.out.println("Shadow Map Light Width: " + mRenderer.getLightWidth());
 				requiresRender();
 			}
+		}
+		else if (c == 'o') {
+			mRenderer.setRenderSnow(!mRenderer.getRenderSnow());
+			requiresRender();
 		}
 	}
 
