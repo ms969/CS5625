@@ -843,12 +843,12 @@ public class Renderer
 	private void renderParticles(GL2 gl, Camera camera, ParticleSystem p) throws OpenGLException {
 		Geometry sphere = null;
 		try {
-			sphere = Geometry.load("models/plane.obj", false, false).get(0);
+			sphere = Geometry.load("models/lowpolysphere.obj", false, false).get(0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		sphere.setScale(0.003f);
+		sphere.setScale(0.03f);
 		sphere.getMeshes().get(0).setMaterial(new LambertianMaterial(new Color3f(1.45f,1.45f,1.5f)));
 		float[] arr =  p.getParticlePositions().array();
 		for (int i = 0; i < arr.length/3; i++) {
