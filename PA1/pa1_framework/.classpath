@@ -17,5 +17,22 @@
 	<classpathentry kind="lib" path="lib/snakeyaml-1.9.jar"/>
 	<classpathentry kind="lib" path="lib/TableLayout.jar"/>
 	<classpathentry kind="lib" path="lib/vecmath.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-android.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-natives-android-armv6.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-natives-linux-armv6.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-natives-linux-armv6hf.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-natives-solaris-amd64.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen-rt-natives-solaris-i586.jar"/>
+	<classpathentry kind="lib" path="lib/gluegen.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-android.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-mobile.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-natives-android-armv6.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-natives-linux-armv6.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-natives-linux-armv6hf.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-natives-solaris-amd64.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-natives-solaris-i586.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-all-noawt.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-test-android.jar"/>
+	<classpathentry kind="lib" path="lib/jogl-test.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
