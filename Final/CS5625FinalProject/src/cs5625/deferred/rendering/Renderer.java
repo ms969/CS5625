@@ -155,6 +155,9 @@ public class Renderer
 	private int mViewMatrixUniformLocation = -1;
 	private int mSnowAmountUniformLocation = -1;
 	
+	private int mSnowCameraWidth = 15;
+	private int mSnowCameraHeight = 15;
+	
 	/* The size of the light uniform arrays in the ubershader. */
 	private int mMaxLightsInUberShader = 40;
 	
@@ -300,18 +303,16 @@ public class Renderer
 						break;
 						}
 					}
-				}	
-			
+				}
+				
+				if (snowCamera != null) {
+				fillGBuffer(gl, sceneRoot, snowCamera);
+				}
+				
 				if (shadowCamera != null) {
 					fillGBuffer(gl, sceneRoot, shadowCamera);
 				}
 				
-				if (snowCamera != null) {
-					if (mSnowOcclusionMapFBO == null) {
-						mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int) snowCamera.getWidth(), (int) snowCamera.getHeight(), GBuffer_Count, true, false);
-					}
-					fillGBuffer(gl, sceneRoot, snowCamera);
-				}
 				
 				/* 1. Fill the gbuffer given this scene and camera. */ 
 				fillGBuffer(gl, sceneRoot, camera);
@@ -450,6 +451,7 @@ public class Renderer
 		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 		
+		
 		/* Update the projection matrix with this camera's projection matrix. */
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
@@ -492,6 +494,7 @@ public class Renderer
 		
 		/* Render the scene. */
 		renderObject(gl, camera, sceneRoot);
+		
 
 		/* GBuffer is filled, so unbind it. */
 		if (camera.getIsShadowMapCamera()) {
@@ -1343,6 +1346,8 @@ public class Renderer
 			/* Create the dynamic cube map FBO, that will be used for the final offscreen rendering of the faces of each dynamic cube map object. */
 			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false);
 			
+			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int) mSnowCameraWidth, mSnowCameraHeight, GBuffer_Count, true, false);
+
 			/* Make sure nothing went wrong. */
 			OpenGLException.checkOpenGLError(gl);
 		}
