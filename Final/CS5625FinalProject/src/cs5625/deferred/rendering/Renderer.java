@@ -310,7 +310,7 @@ public class Renderer
 				}
 				else
 				{			
-					finalPass(gl);					 								 
+					finalPass(gl);
 				}
 			}
 		}
