@@ -30,15 +30,15 @@ void main()
 {
 	int maxd = 2*KernelWidth + 1;
 	vec3 sum;
-	float weight = 0;
+	float weight = 0.0;
 	
 	for (int i = -maxd; i < maxd + 1; i++) {
-		weight = exp(-abs(i)*abs(i)/(2.0*KernelVariance));
+		weight = exp(-abs(float(i))*abs(float(i))/(2.0*KernelVariance));
 		if(Axis == 0) {
-			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x + float(i)/TextureSize, gl_TexCoord[0].y));
+			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x + float(i)/TextureSize, gl_TexCoord[0].y)).xyz;
 		}
 		else {
-			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x, gl_TexCoord[0].y + float(i)/TextureSize));
+			sum += weight*texture2D(SourceTexture, vec2(gl_TexCoord[0].x, gl_TexCoord[0].y + float(i)/TextureSize)).xyz;
 		}
 	}
 

@@ -163,7 +163,7 @@ public class TextureCubeMap extends Texture
 			mDatatype = datatype;
 			
 			/* Create the blur texture FBO. */
-			mBlurTextureFBO = new FramebufferObject(gl, getFormat(), getDatatype(), getSize(), getSize(), 1, true, false, null);
+			mBlurTextureFBO = new FramebufferObject(gl, getFormat(), getDatatype(), getSize(), getSize(), 1, true, false);
 
 			/* Bind and send texture data to OpenGL. */
 			bind(gl, 0);
