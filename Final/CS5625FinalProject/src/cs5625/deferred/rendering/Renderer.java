@@ -7,7 +7,6 @@ import java.util.HashMap;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
-import javax.media.opengl.glu.GLU;
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Color3f;
 import javax.vecmath.Matrix3f;
@@ -144,8 +143,16 @@ public class Renderer
 	private int mCameraInverseRotationUniformLocation = -1;
 	
 	/* TODO snow rendering parameters */
-	private boolean mRenderSnow = true;
-	private int mSnowOcclusionTextureLocation= GBuffer_FinalSceneIndex + 2;
+	private boolean mRenderSnow = false;
+	private float mSnowAmount = 0.5f;
+	
+	private int mRenderSnowUniformLocation = -1;
+	private int mSnowOcclusionTextureLocation = GBuffer_FinalSceneIndex + 2;
+	private int mSnowMapWidthUniformLocation = -1;
+	private int mSnowMapHeightUniformLocation = -1;
+	private int mOcclMapMatrixUniformLocation = -1;
+	private int mViewMatrixUniformLocation = -1;
+	private int mSnowAmountUniformLocation = -1;
 	
 	/* The size of the light uniform arrays in the ubershader. */
 	private int mMaxLightsInUberShader = 40;
@@ -205,7 +212,7 @@ public class Renderer
 								
 				// TO DO PA2: Resize the g-buffer to the size of the dynamic cube maps,
 				// using the mDynamicCubeMapSize variable.
-				resize(drawable, mDynamicCubeMapSize, mDynamicCubeMapSize, snowCamera);
+				resize(drawable, mDynamicCubeMapSize, mDynamicCubeMapSize);
 			}
 			
 			for (int i = 0; i < numPasses; ++i) {
@@ -228,7 +235,7 @@ public class Renderer
 					// (2) If mBlurDynamicCubeMaps is set to true, blur all dynamic
 					// cube maps, using the mBlur* variables to get the horizontal
 					// and vertical blur width and variance.		
-					resize(drawable, (int)originalWidth, (int)originalHeight, snowCamera);
+					resize(drawable, (int)originalWidth, (int)originalHeight);
 					camera.setPosition(originalPosition);
 					camera.setFOV(originalFov);
 					camera.setOrientation(originalOrientation);
@@ -302,6 +309,9 @@ public class Renderer
 				}
 				
 				if (snowCamera != null) {
+					if (mSnowOcclusionMapFBO == null) {
+						mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int) snowCamera.getWidth(), (int) snowCamera.getHeight(), GBuffer_Count, true, false);
+					}
 					fillGBuffer(gl, sceneRoot, snowCamera);
 				}
 				
@@ -431,7 +441,6 @@ public class Renderer
 		/* First, bind and clear the gbuffer. */
 		if (camera.getIsShadowMapCamera()) {
 			mShadowMapFBO.bindAll(gl);
-			
 		} else if (camera.getIsSnowOcclusionMapCamera()) {
 			mSnowOcclusionMapFBO.bindAll(gl);
 		} else {		
@@ -455,6 +464,8 @@ public class Renderer
 		if (camera.getIsCubeMapCamera()) {
 			/* Swap the top and bottom, when we render from a perspective camera */
 			gl.glFrustum( fW, -fW, -fH, fH, zNear, zFar );
+		} else if (camera.getIsSnowOcclusionMapCamera()) {
+			gl.glOrthof(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2, zNear, zFar);
 		} else {
 			gl.glFrustum( -fW, fW, -fH, fH, zNear, zFar );
 		}
@@ -629,7 +640,7 @@ public class Renderer
 			
 			/* Set LightMatrix, which sends points from world space into (light) camera clip coordinates space. */
 			
-			// projection takes camera space to clip space [0-1]
+			// projection takes camera space to clip space [-1, 1]
 			// view takes world to camera space
 			Matrix4f lightProjection = shadowCamera.getProjectionMatrix(mViewportWidth, mViewportHeight);
 			Matrix4f lightView = shadowCamera.getViewMatrix();
@@ -639,16 +650,6 @@ public class Renderer
 			FloatBuffer fb = FloatBuffer.wrap(f1);
 			gl.glUniformMatrix4fv(mLightMatrixUniformLocation, 1, true, fb);
 			
-			
-			/* Set InverseViewMatrix, which sends points from the (eye) camera local space into world space. */
-			Matrix4f v = camera.getViewMatrix();
-			v.invert();
-			// TO DO: set InverseView Uniform
-			float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
-			FloatBuffer fb2 = FloatBuffer.wrap(f2);
-			gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, true, fb2);
-			
-			
 			gl.glUniform1f(mBiasUniformLocation, mBias);
 			gl.glUniform1f(mShadowMapWidthUniformLocation, mViewportWidth);
 			gl.glUniform1f(mShadowMapHeightUniformLocation, mViewportHeight);
@@ -657,12 +658,46 @@ public class Renderer
 			
 			mShadowMapFBO.getDepthTexture().bind(gl, mShadowTextureLocation);
 		}
+		OpenGLException.checkOpenGLError(gl);
 		
 		if (snowCamera != null) {
 			// TODO: set any uniforms here
 			mSnowOcclusionMapFBO.getDepthTexture().bind(gl, mSnowOcclusionTextureLocation);
+			gl.glUniform1f(mSnowMapWidthUniformLocation, snowCamera.getWidth());
+			gl.glUniform1f(mSnowMapHeightUniformLocation, snowCamera.getHeight());
+			
+			// set OcclMapMatrix uniform
+			Matrix4f snowProjection = snowCamera.getProjectionMatrix();
+			Matrix4f snowView = snowCamera.getViewMatrix();
+			Matrix4f l = new Matrix4f();
+			l.mul(snowProjection, snowView);
+			float f1[] = Util.fromMatrix4f(l);
+			//float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
+			FloatBuffer fb = FloatBuffer.wrap(f1);
+			gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, true, fb);
+			
+			// set the ViewMatrix uniform
+			Matrix4f v = camera.getViewMatrix();
+			float f2[] = Util.fromMatrix4f(v);
+			//float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
+			FloatBuffer fb2 = FloatBuffer.wrap(f2);
+			gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, true, fb2);
+			
+			gl.glUniform1i(mRenderSnowUniformLocation, (mRenderSnow ? 1 : 0));
+			gl.glUniform1f(mSnowAmountUniformLocation, mSnowAmount);
 		}
-		
+		OpenGLException.checkOpenGLError(gl);
+
+		if (shadowCamera != null || snowCamera != null) {
+			/* Set InverseViewMatrix, which sends points from the (eye) camera local space into world space. */
+			Matrix4f v = camera.getViewMatrix();
+			v.invert();
+			float f2[] = Util.fromMatrix4f(v);
+			//float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
+			FloatBuffer fb2 = FloatBuffer.wrap(f2);
+			gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, true, fb2);
+		}
+		OpenGLException.checkOpenGLError(gl);
 
 		/* Let there be light! */
 		Util.drawFullscreenQuad(gl, mViewportWidth, mViewportHeight);
@@ -863,7 +898,6 @@ public class Renderer
 		try {
 			sphere = Geometry.load("models/lowpolysphere.obj", false, false).get(0);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		sphere.setScale(0.03f);
@@ -1124,11 +1158,20 @@ public class Renderer
 		return mShadowSampleWidth;
 	}
 	
+	/* Getters and setters for snow variables */
 	public void setRenderSnow(boolean renderSnow) {
 		mRenderSnow = renderSnow;
 	}
 	public boolean getRenderSnow() {
 		return mRenderSnow;
+	}
+	
+	public void setSnowAmount(float snowAmount) {
+		mSnowAmount = snowAmount;
+	}
+	
+	public float getSnowAmount() {
+		return mSnowAmount;
 	}
 	
 	/** Getter and setter for the light width */
@@ -1201,6 +1244,15 @@ public class Renderer
 			mShadowMapHeightUniformLocation = mUberShader.getUniformLocation(gl, "ShadowMapHeight");
 			mShadowSampleWidthUniformLocation = mUberShader.getUniformLocation(gl, "ShadowSampleWidth");
 			mLightWidthUniformLocation = mUberShader.getUniformLocation(gl, "LightWidth");
+			
+			/* snow rendering uniforms */
+			mRenderSnowUniformLocation = mUberShader.getUniformLocation(gl, "RenderSnow");
+			mSnowMapWidthUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapWidth");
+			mSnowMapHeightUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapHeight");
+			mOcclMapMatrixUniformLocation = mUberShader.getUniformLocation(gl, "OcclMapMatrix");
+			mViewMatrixUniformLocation = mUberShader.getUniformLocation(gl, "ViewMatrix");
+			mSnowAmountUniformLocation = mUberShader.getUniformLocation(gl, "SnowAmount");
+			
 			
 			/* Get the maximum number of lights the shader supports. */
 			int count[] = new int[1];
@@ -1284,7 +1336,7 @@ public class Renderer
 			}
 			
 			/* Create the dynamic cube map FBO, that will be used for the final offscreen rendering of the faces of each dynamic cube map object. */
-			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false, null);
+			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false);
 			
 			/* Make sure nothing went wrong. */
 			OpenGLException.checkOpenGLError(gl);
@@ -1305,7 +1357,7 @@ public class Renderer
 	 * @param width The new viewport width.
 	 * @param height The new viewport height.
 	 */
-	public void resize(GLAutoDrawable drawable, int width, int height, Camera snowCamera)
+	public void resize(GLAutoDrawable drawable, int width, int height)
 	{
 		GL2 gl = drawable.getGL().getGL2();
 		
@@ -1318,15 +1370,13 @@ public class Renderer
 		{
 			mGBufferFBO.releaseGPUResources(gl);
 			mShadowMapFBO.releaseGPUResources(gl);
-			mSnowOcclusionMapFBO.releaseGPUResources(gl);
 		}
 		
 		/* Make a new gbuffer with the new size. */
 		try
 		{
-			mGBufferFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, true, null);
-			mShadowMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false, null);
-			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false, snowCamera);
+			mGBufferFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, true);
+			mShadowMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
 		}
 		catch (OpenGLException err)
 		{

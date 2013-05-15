@@ -48,6 +48,7 @@ public class ShadowMapSceneController extends SceneController
 	@Override
 	public void initializeScene()
 	{
+		mSceneRoot.findChildByName("");
 		try
 		{
 			/* Load default scene with materials. */

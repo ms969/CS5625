@@ -225,6 +225,8 @@ public class Util
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glPushMatrix();
 		gl.glLoadIdentity();
+
+		OpenGLException.checkOpenGLError(gl);
 		
 		/* Render the quad. */
 		gl.glBegin(GL2.GL_QUADS);
@@ -233,6 +235,7 @@ public class Util
 		gl.glTexCoord2f(smax, tmax); gl.glVertex2f( 1.0f,  1.0f);
 		gl.glTexCoord2f(0.0f, tmax); gl.glVertex2f(-1.0f,  1.0f);
 		gl.glEnd();
+		OpenGLException.checkOpenGLError(gl);
 		
 		/* Restore matrices. */
 		gl.glPopMatrix();

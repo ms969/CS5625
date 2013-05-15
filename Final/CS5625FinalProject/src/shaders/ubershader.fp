@@ -74,9 +74,13 @@ uniform float LightWidth;
 uniform mat4 LightMatrix;
 uniform mat4 InverseViewMatrix;
 
-/*  */
-uniform int RenderSnow;
-uniform sampler2D SnowOcclusionMap;
+/* snow rendering variables */
+//uniform bool RenderSnow;
+//uniform sampler2D SnowOcclMap;
+//uniform float SnowMapWidth;
+//uniform float SnowMapHeight;
+
+//uniform float SnowAmount;
 
 /* Decodes a vec2 into a normalized vector See Renderer.java for more info. */
 vec3 decode(vec2 v)

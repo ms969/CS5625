@@ -8,6 +8,7 @@ import cs5625.deferred.materials.Texture.Format;
 import cs5625.deferred.materials.Texture2D;
 import cs5625.deferred.misc.OpenGLException;
 import cs5625.deferred.misc.OpenGLResourceObject;
+import cs5625.deferred.misc.Util;
 
 /**
  * FramebufferObject.java
@@ -49,7 +50,7 @@ public class FramebufferObject implements OpenGLResourceObject
 	 * @param rectTextures If true, the created textures will be rectangular textures. If false, they will be regular 2D textures, 
 	 *        which requires GL_EXT_texture_non_power_of_two if `width` and `height` aren't powers of two.
 	 */
-	public FramebufferObject(GL2 gl, Texture2D.Format format, Texture2D.Datatype datatype, int width, int height, int colorTextureCount, boolean makeDepthTexture, boolean rectTextures, Camera snowCamera) throws OpenGLException
+	public FramebufferObject(GL2 gl, Texture2D.Format format, Texture2D.Datatype datatype, int width, int height, int colorTextureCount, boolean makeDepthTexture, boolean rectTextures) throws OpenGLException
 	{
 		/* Sanity check. */
 		if (colorTextureCount == 0 && !makeDepthTexture)
@@ -90,20 +91,22 @@ public class FramebufferObject implements OpenGLResourceObject
 		if (makeDepthTexture)
 		{
 			// change projection from perspective to orthographic for snow occlusion map
-			if (snowCamera != null) {
-				gl.glMatrixMode(GL2.GL_PROJECTION);
-				gl.glPushMatrix();
-				gl.glLoadIdentity();
-				GLU glu = GLU.createGLU();
-				glu.gluOrtho2D(-snowCamera.getWidth()/2f, snowCamera.getWidth()/2f, -snowCamera.getHeight()/2f, snowCamera.getHeight()/2f);
-			}
+//			if (snowCamera != null) {
+//				gl.glMatrixMode(GL2.GL_PROJECTION);
+//				gl.glPushMatrix();
+//				gl.glLoadIdentity();
+//				float[] projection_array = Util.fromMatrix4f(snowCamera.getProjectionMatrix());
+//				gl.glLoadMatrixf(projection_array, 0);
+//				//GLU glu = GLU.createGLU();
+//				//glu.gluOrtho2D(-snowCamera.getWidth()/2f, snowCamera.getWidth()/2f, -snowCamera.getHeight()/2f, snowCamera.getHeight()/2f);
+//			}
 			
 			mDepthTexture = new Texture2D(gl, Format.DEPTH, Datatype.INT32, width, height, null, rectTextures);
 			gl.glFramebufferTexture2D(GL2.GL_FRAMEBUFFER, GL2.GL_DEPTH_ATTACHMENT, mDepthTexture.getTextureTarget(), mDepthTexture.getHandle(), 0);
 			
-			if (snowCamera != null) {
-				gl.glPopMatrix();
-			}
+//			if (snowCamera != null) {
+//				gl.glPopMatrix();
+//			}
 		}
 
 		/* Make sure everything is set up properly. */

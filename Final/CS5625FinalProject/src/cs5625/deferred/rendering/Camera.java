@@ -25,7 +25,8 @@ public class Camera extends SceneObject
 	private float mFar = 100.0f;
 	
 	/* Orthographic camera attributes */
-	private float mWidth, mHeight;
+	private float mWidth = 50f; 
+	private float mHeight = 50f;
 	
 	private boolean mIsCubeMapCamera = false;
 	
@@ -118,6 +119,7 @@ public class Camera extends SceneObject
 	public void setIsCubeMapCamera(boolean isCubeMapCamera)
 	{
 		mIsCubeMapCamera = isCubeMapCamera;
+		//mPerspectiveCam = true;
 	}
 	
 	/**
@@ -134,6 +136,7 @@ public class Camera extends SceneObject
 	public void setIsShadowMapCamera(boolean isShadowMapCamera)
 	{
 		mIsShadowMapCamera = isShadowMapCamera;
+		//mPerspectiveCam = true;
 	}
 	
 	/**
@@ -148,6 +151,7 @@ public class Camera extends SceneObject
 	 */
 	public void setIsSnowOcclusionMapCamera(boolean isSnowOcclusionCamera) {
 		mIsSnowOcclusionMapCamera = isSnowOcclusionCamera;
+		//mPerspectiveCam = false;
 	}
 	
 	/**
@@ -160,6 +164,12 @@ public class Camera extends SceneObject
 		return mView;
 	}
 	
+	/**
+	 * Projection matrix of perspective camera
+	 * @param width viewport width
+	 * @param height viewport height
+	 * @return projection matrix of the perspective camera
+	 */
 	public Matrix4f getProjectionMatrix(float width, float height) {
 		float aspect = width/ height;
 		float s = (float) (1f / (Math.tan(mFOV * 0.5 * Math.PI / 180)));
@@ -168,6 +178,22 @@ public class Camera extends SceneObject
 				0f, s, 0f, 0f,
 				0f, 0f, -(mFar + mNear) / (mFar - mNear), -2 * mFar * mNear / (mFar - mNear),
 				0f, 0f, -1f, 0f);
+	}
+	
+	/**
+	 * Projection matrix of orthographic camera
+	 * @return projection matrix for the orthographic camera
+	 */
+	public Matrix4f getProjectionMatrix() {
+		// 2/right-left 0				0			 -(right+left)/(right-left)
+		// 0			2/top-bottom 	0			 -(top+bottom)/(top-bottom)
+		// 0			0				-2/far-near  -(far+near)/(far-near)
+		// 0			0				0			 1
+		return new Matrix4f(
+				2f/mWidth, 0f		 , 0f			  , 0f,
+				0f		 , 2f/mHeight, 0f			  , 0f,
+				0f		 , 0f		 , -2/(mFar-mNear), -(mFar+mNear)/(mFar-mNear),
+				0f		 , 0f		 , 0f			  , 1f);
 	}
 
 }

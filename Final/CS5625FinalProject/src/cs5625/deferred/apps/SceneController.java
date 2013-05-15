@@ -88,8 +88,8 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 		//globalController = new ManyLightsSceneController();
 		//globalController = new MaterialTestSceneController();
 		//globalController = new TexturesTestSceneController();
-		//globalController = new ShadowMapSceneController();
-		globalController = new CustomSceneController();
+		globalController = new ShadowMapSceneController();
+		//globalController = new CustomSceneController();
 	}
 	
 	/*
@@ -178,7 +178,7 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 	 */
 	public void resizeGL(GLAutoDrawable drawable, int width, int height)
 	{
-		mRenderer.resize(drawable, width, height, mSnowCamera);
+		mRenderer.resize(drawable, width, height);
 	}
 
 	/**
