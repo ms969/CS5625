@@ -80,10 +80,10 @@ void main() {
 		occlCoord = occlCoord/occlCoord.w;
 		
 		//float f_e = 0.0;
-		float f_e = getPCFShadowMapVal(occlCoord);
+		//float f_e = getPCFShadowMapVal(occlCoord);
 		
 		// calculate fp
-		float f_p = f_e * f_inc;
+		float f_p = 1.0;
 		
 		// once we have fp, scale the y direction up in world space according to fp's value
 		vec4 worldSpaceVertex = InverseViewMatrix * eyeSpaceVertex;

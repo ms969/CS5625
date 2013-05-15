@@ -332,6 +332,7 @@ public abstract class SceneController implements MouseListener, MouseMotionListe
 		}
 		else if (c == 'o') {
 			mRenderer.setRenderSnow(!mRenderer.getRenderSnow());
+			System.out.println("Render snow: " + mRenderer.getRenderSnow());
 			requiresRender();
 		}
 	}

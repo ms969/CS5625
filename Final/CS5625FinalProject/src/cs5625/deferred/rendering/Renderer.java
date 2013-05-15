@@ -14,6 +14,7 @@ import javax.vecmath.Matrix4f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
 
+import cs5625.deferred.custom.Billboard;
 import cs5625.deferred.custom.ParticleSystem;
 import cs5625.deferred.materials.LambertianMaterial;
 import cs5625.deferred.materials.Material;
@@ -216,9 +217,6 @@ public class Renderer
 			}
 			
 			for (int i = 0; i < numPasses; ++i) {
-			
-				/* Reset lights array. It will be re-filled as the scene is traversed. */
-				mLights.clear();
 				
 				int dynamicCubeMapIndex = -1; /* Index of the dynamic cube map */
 				int dynamicCubeMapFace = -1; /* The face of the dynamic cube map */
@@ -438,12 +436,15 @@ public class Renderer
 	 * @param camera The camera describing the perspective to render from.
 	 */
 	private void fillGBuffer(GL2 gl, SceneObject sceneRoot, Camera camera) throws OpenGLException {
+		/* Reset lights array. It will be re-filled as the scene is traversed. */
+		mLights.clear();
+		
 		/* First, bind and clear the gbuffer. */
 		if (camera.getIsShadowMapCamera()) {
 			mShadowMapFBO.bindAll(gl);
 		} else if (camera.getIsSnowOcclusionMapCamera()) {
 			mSnowOcclusionMapFBO.bindAll(gl);
-		} else {		
+		} else {
 			mGBufferFBO.bindSome(gl, new int[]{GBuffer_DiffuseIndex, GBuffer_PositionIndex, GBuffer_MaterialIndex1, GBuffer_MaterialIndex2});
 		}
 		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -907,6 +908,10 @@ public class Renderer
 			sphere.setPosition(new Point3f(arr[3*i],arr[3*i+1],arr[3*i+2]));
 			renderObject(gl,camera,sphere);
 		}
+	}
+	
+	private void renderBillboard(GL2 gl, Camera camera, Billboard b) throws OpenGLException {
+		
 	}
 	
 	/**
