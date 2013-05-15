@@ -1,4 +1,4 @@
-# *.class
+*.class
 
 # Package Files #
 # *.jar
@@ -12,16 +12,10 @@
 # *.classpath
 # *.project
 
-PA1/pa1_framework/bin/
-PA1/pa1_framework/src/textures/
-
-
-
-/PA2/pa2_framework/bin
-/PA3/student/bin
-/PA4/PA4Student/bin
-/PA5/PA5Student/bin
-bin
-/PA5/PA5Student/lib
-lib
-/PA2/pa2_framework/.classpath
+/PA1/pa1_framework/bin/
+/PA1/pa1_framework/src/textures/
+/PA2/pa2_framework/bin/
+/PA3/student/bin/
+/PA4/PA4Student/bin/
+/PA5/PA5Student/bin/
+/Final/CS5625FinalProject/bin/

@@ -1,0 +1,13 @@
+calculate occlusion map from the sky, with orthographic projection
+
+To calculate fp, need:
+normal, up, noise for f_inc
+occlusion map, depth for f_e
+
+deferred vertex shader:
+calculate fp and distort vertex according to fp
+
+deferred fragment shader:
+calculate fp
+distort normal
+calculate color of pixel
