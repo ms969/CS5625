@@ -671,15 +671,15 @@ public class Renderer
 			Matrix4f snowView = snowCamera.getViewMatrix();
 			Matrix4f l = new Matrix4f();
 			l.mul(snowProjection, snowView);
-			float f1[] = Util.fromMatrix4f(l);
-			//float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
+			//float f1[] = Util.fromMatrix4f(l);
+			float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
 			FloatBuffer fb = FloatBuffer.wrap(f1);
 			gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, true, fb);
 			
 			// set the ViewMatrix uniform
 			Matrix4f v = camera.getViewMatrix();
-			float f2[] = Util.fromMatrix4f(v);
-			//float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
+			//float f2[] = Util.fromMatrix4f(v);
+			float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
 			FloatBuffer fb2 = FloatBuffer.wrap(f2);
 			gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, true, fb2);
 			
@@ -692,8 +692,8 @@ public class Renderer
 			/* Set InverseViewMatrix, which sends points from the (eye) camera local space into world space. */
 			Matrix4f v = camera.getViewMatrix();
 			v.invert();
-			float f2[] = Util.fromMatrix4f(v);
-			//float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
+			//float f2[] = Util.fromMatrix4f(v);
+			float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
 			FloatBuffer fb2 = FloatBuffer.wrap(f2);
 			gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, true, fb2);
 		}
