@@ -10,6 +10,7 @@ import java.util.Map;
 import javax.media.opengl.GL2;
 import javax.media.opengl.glu.GLU;
 import javax.vecmath.Color3f;
+import javax.vecmath.Matrix4f;
 
 import cs5625.deferred.misc.OpenGLException;
 import cs5625.deferred.misc.OpenGLResourceObject;

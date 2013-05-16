@@ -3,16 +3,21 @@ package cs5625.deferred.apps;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.util.List;
 
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
 
+import cs5625.deferred.materials.BlinnPhongMaterial;
 import cs5625.deferred.materials.LambertianMaterial;
+import cs5625.deferred.materials.Material;
 import cs5625.deferred.misc.Util;
 import cs5625.deferred.scenegraph.Geometry;
+import cs5625.deferred.scenegraph.Mesh;
 import cs5625.deferred.scenegraph.PointLight;
+import cs5625.deferred.scenegraph.SceneObject;
 
 /**
  * DefaultSceneController.java
@@ -98,6 +103,7 @@ public class ShadowMapSceneController extends SceneController
 		
 		mSnowCamera.setWidth(SNOW_CAM_FRUSTUM_WIDTH);
 		mSnowCamera.setHeight(SNOW_CAM_FRUSTUM_HEIGHT);
+		
 	}
 		
 	/**

@@ -1,9 +1,13 @@
 package cs5625.deferred.materials;
 
+import java.nio.FloatBuffer;
+
 import javax.media.opengl.GL2;
 import javax.vecmath.Color3f;
+import javax.vecmath.Matrix4f;
 
 import cs5625.deferred.misc.OpenGLException;
+import cs5625.deferred.misc.Util;
 import cs5625.deferred.rendering.ShaderProgram;
 
 /**
@@ -19,6 +23,12 @@ import cs5625.deferred.rendering.ShaderProgram;
  */
 public class BlinnPhongMaterial extends Material
 {
+	public static Texture2D occlMapTexture = null;
+	public static boolean renderSnow = false;
+	public static float snowMapWidth, snowMapHeight;
+	public static Matrix4f occlMapMatrix, viewMatrix, inverseViewMatrix;
+	public static float snowAmount = 0.5f;
+	
 	/* Blinn-Phong material properties. */
 	private Color3f mDiffuseColor = new Color3f(1.0f, 1.0f, 1.0f);
 	private Color3f mSpecularColor = new Color3f(1.0f, 1.0f, 1.0f);
@@ -36,6 +46,14 @@ public class BlinnPhongMaterial extends Material
 	private int mHasDiffuseTextureUniformLocation = -1;
 	private int mHasSpecularTextureUniformLocation = -1;
 	private int mHasExponentTextureUniformLocation = -1;
+	
+	private int mRenderSnowUniformLocation = -1;
+	private int mSnowMapWidthUniformLocation = -1;
+	private int mSnowMapHeightUniformLocation = -1;
+	private int mOcclMapMatrixUniformLocation = -1;
+	private int mViewMatrixUniformLocation = -1;
+	private int mInverseViewMatrixUniformLocation = -1;
+	private int mSnowAmountUniformLocation = -1;
 	
 	public BlinnPhongMaterial()
 	{
@@ -143,6 +161,23 @@ public class BlinnPhongMaterial extends Material
 			gl.glUniform1i(mHasExponentTextureUniformLocation, 1);
 			mExponentTexture.bind(gl, 2);
 		}
+		
+		gl.glUniform1i(mRenderSnowUniformLocation, (renderSnow) ? 1 : 0);
+		gl.glUniform1f(mSnowMapWidthUniformLocation, snowMapWidth);
+		gl.glUniform1f(mSnowMapHeightUniformLocation, snowMapHeight);
+		float[] f = Util.fromMatrix4f(occlMapMatrix);
+		FloatBuffer fb = FloatBuffer.wrap(f);
+		gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, false, fb);
+		f = Util.fromMatrix4f(viewMatrix);
+		fb = FloatBuffer.wrap(f);
+		gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, false, fb);
+		f = Util.fromMatrix4f(inverseViewMatrix);
+		fb = FloatBuffer.wrap(f);
+		gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, false, fb);
+		gl.glUniform1f(mSnowAmountUniformLocation, snowAmount);
+		if (occlMapTexture != null) {
+			occlMapTexture.bind(gl, 3);
+		}
 	}
 	
 	@Override
@@ -162,7 +197,16 @@ public class BlinnPhongMaterial extends Material
 		gl.glUniform1i(shader.getUniformLocation(gl, "DiffuseTexture"), 0);
 		gl.glUniform1i(shader.getUniformLocation(gl, "SpecularTexture"), 1);
 		gl.glUniform1i(shader.getUniformLocation(gl, "ExponentTexture"), 2);
+		gl.glUniform1i(shader.getUniformLocation(gl, "SnowOcclMap"), 3);
 		shader.unbind(gl);
+		
+		mRenderSnowUniformLocation = shader.getUniformLocation(gl, "RenderSnow");
+		mSnowMapWidthUniformLocation = shader.getUniformLocation(gl, "SnowMapWidth");
+		mSnowMapHeightUniformLocation = shader.getUniformLocation(gl, "SnowMapHeight");
+		mOcclMapMatrixUniformLocation = shader.getUniformLocation(gl, "OcclMapMatrix");
+		mViewMatrixUniformLocation = shader.getUniformLocation(gl, "ViewMatrix");
+		mInverseViewMatrixUniformLocation = shader.getUniformLocation(gl, "InverseViewMatrix");
+		mSnowAmountUniformLocation = shader.getUniformLocation(gl, "SnowAmount");
 	}
 
 	@Override
@@ -182,6 +226,10 @@ public class BlinnPhongMaterial extends Material
 		
 		if (mExponentTexture != null) {
 			mExponentTexture.unbind(gl);
+		}
+		
+		if (occlMapTexture != null) {
+			occlMapTexture.unbind(gl);
 		}
 	}
 }

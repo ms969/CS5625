@@ -16,10 +16,87 @@ varying vec3 EyespacePosition;
 varying vec3 EyespaceNormal;
 varying vec2 TexCoord;
 
+const float SNOW_OCCL_SAMPLE_WIDTH = 3.0;
+const float SNOW_BIAS = 5.0E-5;
+const float PI = 3.14159265359;
+
+uniform int RenderSnow;
+
+uniform sampler2D SnowOcclMap;
+uniform float SnowMapWidth;
+uniform float SnowMapHeight;
+
+uniform mat4 OcclMapMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 InverseViewMatrix;
+
+uniform float SnowAmount;
+
+/** Returns a binary value for if this location is shadowed. 0 = shadowed, 1 = not shadowed.
+ * helper for reading ShadowMap texture for PCF and PCSS
+ */
+float getShadowVal(vec4 shadowCoord, vec2 offset) {
+	// shadowCoord is [0,1], need to convert to pixel
+	vec2 textureCoord = vec2(shadowCoord.x*SnowMapWidth, shadowCoord.y*SnowMapHeight);
+	textureCoord = textureCoord + offset;
+	// converting back to [0,1] to read from texture
+	textureCoord = vec2(textureCoord.x/SnowMapWidth, textureCoord.y/SnowMapHeight);
+	return texture2D(SnowOcclMap, textureCoord).x;
+}
+
+float getPCFShadowMapVal(vec4 shadowCoord) {
+	// count of occluded pixels
+	float m = 0.0;
+	for (float i = -SNOW_OCCL_SAMPLE_WIDTH; i <= SNOW_OCCL_SAMPLE_WIDTH; i += 1.0) {
+ 		for (float j = -SNOW_OCCL_SAMPLE_WIDTH; j <= SNOW_OCCL_SAMPLE_WIDTH; j += 1.0) {
+			float shadowMapZValue = getShadowVal(shadowCoord, vec2(i, j));
+			if (shadowCoord.z <= shadowMapZValue + SNOW_BIAS) {
+		 		// unoccluded pixel
+		 		m = m + 1.0;
+		 	}
+ 		}
+ 	}
+ 	float n = pow(SNOW_OCCL_SAMPLE_WIDTH * 2.0 + 1.0, 2.0);
+ 	return m/n;
+}
+
 void main()
 {
-	/* Standard vertex transform. */
-	gl_Position = ftransform();
+	if (RenderSnow == 1) {
+		// calculate f_inc
+		vec4 worldSpaceNormal4 = InverseViewMatrix * vec4(normalize(gl_NormalMatrix * gl_Normal), 0.0);
+		worldSpaceNormal4 = worldSpaceNormal4 / worldSpaceNormal4.w;
+		vec3 worldSpaceNormal = normalize(worldSpaceNormal4.xyz);
+		vec3 worldSpaceUp = vec3(0.0, 1.0, 0.0);
+		float cos_theta = dot(worldSpaceNormal, worldSpaceUp);
+		float theta = acos(cos_theta);
+		float f_inc = 0.0;
+		if (theta >= 0.0 && theta <= PI/2.0) {
+			float n = noise1(gl_MultiTexCoord0);
+			f_inc = cos_theta + n;
+		}
+		
+		// calculate f_e (occlusion)
+		vec4 eyeSpaceVertex = gl_ModelViewMatrix * gl_Vertex;
+		mat4 biasMatrix = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+		// OcclMapMatrix goes from world space to occlusionMap clip space
+		// InverseViewMatrix goes from camera space to world space
+		vec4 occlCoord = biasMatrix * OcclMapMatrix * InverseViewMatrix * eyeSpaceVertex;
+		occlCoord = occlCoord/occlCoord.w;
+		
+		//float f_e = 0.0;
+		float f_e = getPCFShadowMapVal(occlCoord);
+		
+		// calculate fp
+		float f_p = f_e * f_inc;
+		
+		// once we have fp, scale the y direction up in world space according to fp's value
+		vec4 worldSpaceVertex = InverseViewMatrix * eyeSpaceVertex;
+		float new_y = worldSpaceVertex.y + f_p * SnowAmount;
+		gl_Position = gl_ProjectionMatrix * ViewMatrix * vec4(worldSpaceVertex.x, new_y, worldSpaceVertex.z, worldSpaceVertex.w);
+	} else {
+		gl_Position = ftransform();
+	}
 	
 	// TODO PA3 Prereq: Transform stuff into eye space and store in varyings.
 	EyespacePosition = vec3(gl_ModelViewMatrix * gl_Vertex);
