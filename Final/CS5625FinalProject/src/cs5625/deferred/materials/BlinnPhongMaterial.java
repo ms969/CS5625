@@ -26,7 +26,7 @@ public class BlinnPhongMaterial extends Material
 	public static Texture2D occlMapTexture = null;
 	public static boolean renderSnow = false;
 	public static float snowMapWidth, snowMapHeight;
-	public static Matrix4f occlMapMatrix, viewMatrix, inverseViewMatrix;
+	public static Matrix4f occlMapMatrix, viewMatrix, inverseViewMatrix, transposeInverseViewMatrix;
 	public static float snowAmount = 0.5f;
 	
 	/* Blinn-Phong material properties. */
@@ -53,6 +53,7 @@ public class BlinnPhongMaterial extends Material
 	private int mOcclMapMatrixUniformLocation = -1;
 	private int mViewMatrixUniformLocation = -1;
 	private int mInverseViewMatrixUniformLocation = -1;
+	private int mTransposeInverseViewMatrixUniformLocation = -1;
 	private int mSnowAmountUniformLocation = -1;
 	
 	public BlinnPhongMaterial()
@@ -163,18 +164,29 @@ public class BlinnPhongMaterial extends Material
 		}
 		
 		gl.glUniform1i(mRenderSnowUniformLocation, (renderSnow) ? 1 : 0);
-		gl.glUniform1f(mSnowMapWidthUniformLocation, snowMapWidth);
-		gl.glUniform1f(mSnowMapHeightUniformLocation, snowMapHeight);
-		float[] f = Util.fromMatrix4f(occlMapMatrix);
-		FloatBuffer fb = FloatBuffer.wrap(f);
-		gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, false, fb);
-		f = Util.fromMatrix4f(viewMatrix);
-		fb = FloatBuffer.wrap(f);
-		gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, false, fb);
-		f = Util.fromMatrix4f(inverseViewMatrix);
-		fb = FloatBuffer.wrap(f);
-		gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, false, fb);
-		gl.glUniform1f(mSnowAmountUniformLocation, snowAmount);
+		if (renderSnow) {
+			gl.glUniform1f(mSnowMapWidthUniformLocation, snowMapWidth);
+			gl.glUniform1f(mSnowMapHeightUniformLocation, snowMapHeight);
+			
+			float[] f = Util.fromMatrix4f(occlMapMatrix);
+			FloatBuffer fb = FloatBuffer.wrap(f);
+			gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, false, fb);
+			
+			f = Util.fromMatrix4f(viewMatrix);
+			fb = FloatBuffer.wrap(f);
+			gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, false, fb);
+			
+			f = Util.fromMatrix4f(inverseViewMatrix);
+			fb = FloatBuffer.wrap(f);
+			gl.glUniformMatrix4fv(mInverseViewMatrixUniformLocation, 1, false, fb);
+			
+			f = Util.fromMatrix4f(transposeInverseViewMatrix);
+			fb = FloatBuffer.wrap(f);
+			gl.glUniformMatrix4fv(mTransposeInverseViewMatrixUniformLocation, 1, false, fb);
+			
+			gl.glUniform1f(mSnowAmountUniformLocation, snowAmount);
+			
+		}
 		if (occlMapTexture != null) {
 			occlMapTexture.bind(gl, 3);
 		}
@@ -206,6 +218,7 @@ public class BlinnPhongMaterial extends Material
 		mOcclMapMatrixUniformLocation = shader.getUniformLocation(gl, "OcclMapMatrix");
 		mViewMatrixUniformLocation = shader.getUniformLocation(gl, "ViewMatrix");
 		mInverseViewMatrixUniformLocation = shader.getUniformLocation(gl, "InverseViewMatrix");
+		mTransposeInverseViewMatrixUniformLocation = shader.getUniformLocation(gl, "TransposeInverseViewMatrix");
 		mSnowAmountUniformLocation = shader.getUniformLocation(gl, "SnowAmount");
 	}
 

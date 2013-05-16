@@ -17,7 +17,7 @@ varying vec3 EyespaceNormal;
 varying vec2 TexCoord;
 
 const float SNOW_OCCL_SAMPLE_WIDTH = 3.0;
-const float SNOW_BIAS = 5.0E-5;
+const float SNOW_BIAS = 7.6E-5;
 const float PI = 3.14159265359;
 
 uniform int RenderSnow;
@@ -29,6 +29,7 @@ uniform float SnowMapHeight;
 uniform mat4 OcclMapMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 InverseViewMatrix;
+uniform mat4 TransposeInverseViewMatrix;
 
 uniform float SnowAmount;
 
@@ -64,14 +65,16 @@ void main()
 {
 	if (RenderSnow == 1) {
 		// calculate f_inc
-		vec4 worldSpaceNormal4 = InverseViewMatrix * vec4(normalize(gl_NormalMatrix * gl_Normal), 0.0);
-		worldSpaceNormal4 = worldSpaceNormal4 / worldSpaceNormal4.w;
-		vec3 worldSpaceNormal = normalize(worldSpaceNormal4.xyz);
-		vec3 worldSpaceUp = vec3(0.0, 1.0, 0.0);
-		float cos_theta = dot(worldSpaceNormal, worldSpaceUp);
+		//vec4 worldSpaceNormal4 = InverseViewMatrix * gl_ProjectionMatrixInverse * vec4(normalize(gl_NormalMatrix * gl_Normal), 0.0);
+		//worldSpaceNormal4 = worldSpaceNormal4 / worldSpaceNormal4.w;
+		vec3 eyeSpaceNormal = normalize(gl_NormalMatrix * gl_Normal);
+		vec4 worldSpaceUp = vec4(0.0, 1.0, 0.0, 0.0); // view * worldSpaceUp -> cameraSpaceUp
+		vec4 eyeSpaceUp4 = TransposeInverseViewMatrix * worldSpaceUp;
+		vec3 eyeSpaceUp = (eyeSpaceUp4/eyeSpaceUp4.w).xyz;
+		float cos_theta = dot(eyeSpaceNormal, eyeSpaceUp);
 		float theta = acos(cos_theta);
 		float f_inc = 0.0;
-		if (theta >= 0.0 && theta <= PI/2.0) {
+		if (theta > 0.0 && theta < PI/2.0) {
 			float n = noise1(gl_MultiTexCoord0);
 			f_inc = cos_theta + n;
 		}
@@ -88,18 +91,21 @@ void main()
 		float f_e = getPCFShadowMapVal(occlCoord);
 		
 		// calculate fp
-		float f_p = f_e * f_inc;
+		float f_p = f_e;
 		
 		// once we have fp, scale the y direction up in world space according to fp's value
 		vec4 worldSpaceVertex = InverseViewMatrix * eyeSpaceVertex;
 		float new_y = worldSpaceVertex.y + f_p * SnowAmount;
-		gl_Position = gl_ProjectionMatrix * ViewMatrix * vec4(worldSpaceVertex.x, new_y, worldSpaceVertex.z, worldSpaceVertex.w);
+		vec4 clipVertex = gl_ProjectionMatrix * ViewMatrix * vec4(worldSpaceVertex.x, new_y, worldSpaceVertex.z, worldSpaceVertex.w);
+		clipVertex = clipVertex/clipVertex.w;
+		EyespacePosition = clipVertex.xyz;
+		gl_Position = clipVertex;
 	} else {
 		gl_Position = ftransform();
+		EyespacePosition = vec3(gl_ModelViewMatrix * gl_Vertex);
 	}
 	
 	// TODO PA3 Prereq: Transform stuff into eye space and store in varyings.
-	EyespacePosition = vec3(gl_ModelViewMatrix * gl_Vertex);
 	EyespaceNormal = normalize(gl_NormalMatrix * gl_Normal);
 	TexCoord = vec2(gl_MultiTexCoord0);	
 }

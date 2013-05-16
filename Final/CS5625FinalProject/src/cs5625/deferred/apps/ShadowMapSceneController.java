@@ -53,6 +53,8 @@ public class ShadowMapSceneController extends SceneController
 	@Override
 	public void initializeScene()
 	{
+
+		
 		mSceneRoot.findChildByName("");
 		try
 		{
@@ -90,20 +92,20 @@ public class ShadowMapSceneController extends SceneController
 		/* Set up snow camera */
 		/* Compose the "horizontal" and "vertical" rotations. */
 		Quat4f longitudeQuat = new Quat4f();
-		longitudeQuat.set(new AxisAngle4f(0.0f, 1.0f, 0.0f, 0f * (float)Math.PI / 180.0f));
+		longitudeQuat.set(new AxisAngle4f(0.0f, 1.0f, 0.0f, 90f * (float)Math.PI / 180.0f));
 		
 		Quat4f latitudeQuat = new Quat4f();
 		latitudeQuat.set(new AxisAngle4f(1.0f, 0.0f, 0.0f, -90f * (float)Math.PI / 180.0f));
+		
 
 		mSnowCamera.getOrientation().mul(longitudeQuat, latitudeQuat);
 		
 		/* Set the camera's position so that it looks towards the origin. */
-		mSnowCamera.setPosition(new Point3f(0.0f, 0.0f, SNOW_CAM_HEIGHT));
+		mSnowCamera.setPosition(new Point3f(0.0f, SNOW_CAM_HEIGHT, 0.0f));
 		Util.rotateTuple(mSnowCamera.getOrientation(), mSnowCamera.getPosition());
 		
 		mSnowCamera.setWidth(SNOW_CAM_FRUSTUM_WIDTH);
 		mSnowCamera.setHeight(SNOW_CAM_FRUSTUM_HEIGHT);
-		
 	}
 		
 	/**

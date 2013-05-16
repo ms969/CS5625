@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLAutoDrawable;
+import javax.media.opengl.glu.GLU;
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Color3f;
 import javax.vecmath.Matrix3f;
@@ -145,7 +146,7 @@ public class Renderer
 	
 	/* TODO snow rendering parameters */
 	private boolean mRenderSnow = false;
-	private float mSnowAmount = 0.5f;
+	private float mSnowAmount = 1f;
 	
 	private int mRenderSnowUniformLocation = -1;
 	private int mSnowOcclusionTextureLocation = GBuffer_FinalSceneIndex + 2;
@@ -195,7 +196,7 @@ public class Renderer
 	public void render(GLAutoDrawable drawable, SceneObject sceneRoot, Camera camera, Camera shadowCamera, Camera snowCamera)
 	{
 		GL2 gl = drawable.getGL().getGL2();		
-				
+		
 		try
 		{
 			/* The number of times we should render the scene */
@@ -206,7 +207,9 @@ public class Renderer
 			float originalWidth = mViewportWidth, originalHeight = mViewportHeight;
 			Point3f originalPosition = camera.getPosition();
 			Quat4f originalOrientation = camera.getOrientation();
-			float originalFov = camera.getFOV();			
+			float originalFov = camera.getFOV();
+			
+			
 						
 			if (mPreviewIndex != -1) {
 				/* If we are in preview mode, do not render the dynamic cube maps */				
@@ -220,7 +223,7 @@ public class Renderer
 			}
 			
 			for (int i = 0; i < numPasses; ++i) {
-			
+				
 				
 				int dynamicCubeMapIndex = -1; /* Index of the dynamic cube map */
 				int dynamicCubeMapFace = -1; /* The face of the dynamic cube map */
@@ -307,29 +310,39 @@ public class Renderer
 				}
 				
 				if (snowCamera != null) {
-				fillGBuffer(gl, sceneRoot, snowCamera);
+					snowCamera.setWidth(mViewportWidth);
+					snowCamera.setHeight(mViewportHeight);
+					fillGBuffer(gl, sceneRoot, snowCamera);
 				}
 				
 				BlinnPhongMaterial.renderSnow = mRenderSnow;
-				BlinnPhongMaterial.snowAmount = mSnowAmount;
-				BlinnPhongMaterial.occlMapTexture = mSnowOcclusionMapFBO.getDepthTexture();
-				BlinnPhongMaterial.snowMapWidth = snowCamera.getWidth();
-				BlinnPhongMaterial.snowMapHeight = snowCamera.getHeight();
+				if (mRenderSnow) {
+					BlinnPhongMaterial.snowAmount = mSnowAmount;
+					BlinnPhongMaterial.occlMapTexture = mSnowOcclusionMapFBO.getDepthTexture();
+					BlinnPhongMaterial.snowMapWidth = mViewportWidth; //snowCamera.getWidth();
+					BlinnPhongMaterial.snowMapHeight = mViewportHeight; //snowCamera.getHeight();
+					
+					// set OcclMapMatrix uniform
+					Matrix4f snowProjection = snowCamera.getProjectionMatrix();
+					Matrix4f snowView = snowCamera.getViewMatrix();
+					Matrix4f l = new Matrix4f();
+					l.mul(snowProjection, snowView);
+					BlinnPhongMaterial.occlMapMatrix = l;
+					
+					// set the ViewMatrix uniform
+					Matrix4f v = new Matrix4f(camera.getViewMatrix());
+					BlinnPhongMaterial.viewMatrix = v;
+					
+					Matrix4f v_i = new Matrix4f();
+					v_i.invert(v);
+					BlinnPhongMaterial.inverseViewMatrix = v_i;
+					
+					Matrix4f ti_v = new Matrix4f();
+					ti_v.invert(v);
+					ti_v.transpose();
+					BlinnPhongMaterial.transposeInverseViewMatrix = ti_v;
+				}
 				
-				// set OcclMapMatrix uniform
-				Matrix4f snowProjection = snowCamera.getProjectionMatrix();
-				Matrix4f snowView = snowCamera.getViewMatrix();
-				Matrix4f l = new Matrix4f();
-				l.mul(snowProjection, snowView);
-				BlinnPhongMaterial.occlMapMatrix = l;
-				
-				// set the ViewMatrix uniform
-				Matrix4f v = new Matrix4f(camera.getViewMatrix());
-				BlinnPhongMaterial.viewMatrix = v;
-				
-				Matrix4f v_i = new Matrix4f();
-				v_i.invert(v);
-				BlinnPhongMaterial.inverseViewMatrix = v_i;
 				
 				if (shadowCamera != null) {
 					fillGBuffer(gl, sceneRoot, shadowCamera);
@@ -489,7 +502,9 @@ public class Renderer
 			/* Swap the top and bottom, when we render from a perspective camera */
 			gl.glFrustum( fW, -fW, -fH, fH, zNear, zFar );
 		} else if (camera.getIsSnowOcclusionMapCamera()) {
-			gl.glOrthof(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2, zNear, zFar);
+			GLU glu = GLU.createGLU(gl);
+			glu.gluOrtho2D(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2);
+			//gl.glOrthof(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2, zNear, zFar);
 		} else {
 			gl.glFrustum( -fW, fW, -fH, fH, zNear, zFar );
 		}
@@ -1363,7 +1378,7 @@ public class Renderer
 			/* Create the dynamic cube map FBO, that will be used for the final offscreen rendering of the faces of each dynamic cube map object. */
 			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false);
 			
-			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int) mSnowCameraWidth, mSnowCameraHeight, GBuffer_Count, true, false);
+			//mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int)mViewportWidth, (int)mViewportHeight, GBuffer_Count, true, false);
 
 			/* Make sure nothing went wrong. */
 			OpenGLException.checkOpenGLError(gl);
@@ -1397,6 +1412,7 @@ public class Renderer
 		{
 			mGBufferFBO.releaseGPUResources(gl);
 			mShadowMapFBO.releaseGPUResources(gl);
+			mSnowOcclusionMapFBO.releaseGPUResources(gl);
 		}
 		
 		/* Make a new gbuffer with the new size. */
@@ -1404,6 +1420,7 @@ public class Renderer
 		{
 			mGBufferFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, true);
 			mShadowMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
+			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
 		}
 		catch (OpenGLException err)
 		{
