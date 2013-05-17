@@ -44,8 +44,9 @@ public class CustomSceneController extends SceneController {
 			/* Add particle system */
 			ArrayList<Effector> ef = new ArrayList<Effector>();
 			ef.add(new Gravity(new Point3f(), -0.000002f, new AxisAngle4f()));
+			ef.add(new Gravity(new Point3f(), 0.000001f, new AxisAngle4f(1f,0f,0f,(float) (Math.PI/2))));
 			ef.add(new Circ(new Point3f(), 0.000001f, new AxisAngle4f()));
-			mSceneRoot.addChild(new ParticleSystem(1000,12, 6, 15000, 1, new Point3f(0,10,0), 9f,ef));
+			mSceneRoot.addChild(new ParticleSystem(2000,15, 6, 13000, 1, new Point3f(0,4,0), 9f,ef));
 			
 			/*Add moonlight */
 			PointLight moonlight = new PointLight();
@@ -57,10 +58,10 @@ public class CustomSceneController extends SceneController {
 			
 			
 			/* Load the default scene without materials. */
-			mSceneRoot.addGeometry(Geometry.load("models/default-scene.obj", false, true));
+			mSceneRoot.addGeometry(Geometry.load("models/treescene.obj", true, true));
 						
 			/* Example of manipulating an object by name. */
-			mSceneRoot.findDescendantByName("fighter1").getOrientation().set(new AxisAngle4f(0.0f, 1.0f, 0.0f, -(float)Math.PI / 4.0f));
+			//mSceneRoot.findDescendantByName("fighter1").getOrientation().set(new AxisAngle4f(0.0f, 1.0f, 0.0f, -(float)Math.PI / 4.0f));
 
 			/* This object will contain the cloud of point lights we're about to create. */
 			mLightCloud = new SceneObject();
@@ -161,7 +162,7 @@ public class CustomSceneController extends SceneController {
 		float deltaY = -(mouse.getPoint().y - mLastMouseDrag.y);
 		mLastMouseDrag = mouse.getPoint();
 		
-		if (mouse.getButton() == MouseEvent.BUTTON1)
+		if (true)
 		{
 			/* Left mouse --> update camera. */
 			

@@ -3,6 +3,7 @@ package cs5625.deferred.custom;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -71,16 +72,17 @@ public class ParticleSystem extends SceneObject{
 	
 	public FloatBuffer getParticlePositions() {
 		float[] pos = new float[live.size()*3];
-		Particle[] part = new Particle[live.size()];
-		part = live.toArray(part);
-		for(int i = 0; i < live.size(); i++) {
-			pos[3*i] = part[i].getPosition().x;
-			pos[3*i+1] = part[i].getPosition().y;
-			pos[3*i+2] = part[i].getPosition().z;
+		Iterator<Particle> i = live.iterator();
+		int c = 0;
+		while(i.hasNext()) {
+			Particle p = i.next();
+			pos[3*c] = p.getPosition().x;
+			pos[3*c+1] = p.getPosition().y;
+			pos[3*c+2] = p.getPosition().z;
+			c++;
 		}
 		FloatBuffer fb = FloatBuffer.allocate(live.size()*3);
-		for(float f : pos)
-			fb.put(f);
+		fb.put(pos);
 		return fb;
 	}
 	

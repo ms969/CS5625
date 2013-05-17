@@ -13,9 +13,13 @@ import javax.vecmath.Matrix3f;
 import javax.vecmath.Matrix4f;
 import javax.vecmath.Point3f;
 import javax.vecmath.Quat4f;
+import javax.vecmath.Vector2f;
+import javax.vecmath.Vector3f;
 
 import cs5625.deferred.custom.Billboard;
+import cs5625.deferred.custom.BillboardMaterial;
 import cs5625.deferred.custom.ParticleSystem;
+import cs5625.deferred.materials.BlinnPhongMaterial;
 import cs5625.deferred.materials.LambertianMaterial;
 import cs5625.deferred.materials.Material;
 import cs5625.deferred.materials.TextureCubeMap;
@@ -783,6 +787,9 @@ public class Renderer
 		{
 			renderParticles(gl, camera, (ParticleSystem) obj);
 		}
+		else if (obj instanceof Billboard) {
+			renderBillboard(gl, camera, (Billboard) obj);
+		}
 		
 		/* Render this object's children. */
 		for (SceneObject child : obj.getChildren())
@@ -898,22 +905,101 @@ public class Renderer
 	}
 	
 	private void renderParticles(GL2 gl, Camera camera, ParticleSystem p) throws OpenGLException {
-		Geometry sphere = null;
+		/*Geometry sphere = null;
 		try {
 			sphere = Geometry.load("models/lowpolysphere.obj", false, false).get(0);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		sphere.setScale(0.03f);
-		sphere.getMeshes().get(0).setMaterial(new LambertianMaterial(new Color3f(1.45f,1.45f,1.5f)));
+		sphere.getMeshes().get(0).setMaterial(new LambertianMaterial(new Color3f(1.45f,1.45f,1.5f)));*/
 		float[] arr =  p.getParticlePositions().array();
+		Billboard b = new Billboard();
+		
+		b.setDimensions(new Vector2f(0.5f,0.5f));
+		b.setMaterial(new BillboardMaterial());
 		for (int i = 0; i < arr.length/3; i++) {
-			sphere.setPosition(new Point3f(arr[3*i],arr[3*i+1],arr[3*i+2]));
-			renderObject(gl,camera,sphere);
+			b.setPosition(p.transformPointToWorldSpace(new Point3f(arr[3*i],arr[3*i+1],arr[3*i+2])));
+			renderObject(gl,camera,b);
 		}
 	}
 	
 	private void renderBillboard(GL2 gl, Camera camera, Billboard b) throws OpenGLException {
+		Vector3f objToCamProj = new Vector3f();
+		objToCamProj.x = camera.getPosition().x - b.getPosition().x;
+		objToCamProj.y = 0;
+		objToCamProj.z = camera.getPosition().z - b.getPosition().z;
+		
+		Vector3f lookAt = new Vector3f(0f,0f,1f);
+		//Vector3f cross = new Vector3f();
+		
+		objToCamProj.normalize();
+		
+		//cross.cross(lookAt, objToCamProj);
+		float angleCos = objToCamProj.dot(lookAt);
+		int sign = (int) Math.signum(angleCos);
+		angleCos = (float) Math.acos(angleCos);
+		
+		//System.out.println(angleCos);
+		gl.glPushMatrix();
+		
+		gl.glTranslatef(-b.getPosition().x, -b.getPosition().y, -b.getPosition().z);
+		gl.glRotatef((float) (angleCos*180f/Math.PI), 0.0f, 1.0f, 0.0f);
+		gl.glTranslatef(b.getPosition().x, b.getPosition().y, b.getPosition().z);
+		
+		Vector3f objToCam = new Vector3f();
+		objToCam.x = camera.getPosition().x - b.getPosition().x;
+		objToCam.y = camera.getPosition().y - b.getPosition().y;
+		objToCam.z = camera.getPosition().z - b.getPosition().z;
+		
+		objToCam.normalize();
+		
+		angleCos = objToCam.dot(objToCamProj);
+		
+		//gl.glRotatef((float) (angleCos*180/Math.PI), -1, 0, 0);
+		
+		gl.glPushAttrib(GL2.GL_ALL_ATTRIB_BITS);
+		gl.glPushClientAttrib((int)GL2.GL_CLIENT_ALL_ATTRIB_BITS);
+		
+		b.getMaterial().retrieveShader(gl, mShaderCache);
+		b.getMaterial().bind(gl);
+		
+		gl.glEnableClientState(GL2.GL_VERTEX_ARRAY);
+		gl.glVertexPointer(3, GL2.GL_FLOAT, 0, b.getVertexData());
+
+		if (b.getNormalData() == null)
+		{
+			gl.glDisableClientState(GL2.GL_NORMAL_ARRAY);
+		}
+		else
+		{
+			gl.glEnableClientState(GL2.GL_NORMAL_ARRAY);
+			gl.glNormalPointer(GL2.GL_FLOAT, 0, b.getNormalData());
+		}	
+		
+		if (b.getTexCoordData() == null)
+		{
+			gl.glDisableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
+		}
+		else
+		{
+			gl.glEnableClientState(GL2.GL_TEXTURE_COORD_ARRAY);
+			gl.glTexCoordPointer(2, GL2.GL_FLOAT, 0, b.getTexCoordData());
+		}
+		//RENDER STUFF
+		gl.glDrawElements(GL2.GL_QUADS, 
+				  4, 
+				  GL2.GL_UNSIGNED_INT, 
+				  b.getPolygonData());
+		
+		b.getMaterial().unbind(gl);
+		
+		gl.glPopClientAttrib();
+		gl.glPopAttrib();
+		
+		gl.glPopMatrix();
+		OpenGLException.checkOpenGLError(gl);
+		
 		
 	}
 	
