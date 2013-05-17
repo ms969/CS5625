@@ -70,13 +70,13 @@ void main()
 		vec3 eyeSpaceNormal = normalize(gl_NormalMatrix * gl_Normal);
 		vec4 worldSpaceUp = vec4(0.0, 1.0, 0.0, 0.0); // view * worldSpaceUp -> cameraSpaceUp
 		vec4 eyeSpaceUp4 = TransposeInverseViewMatrix * worldSpaceUp;
-		vec3 eyeSpaceUp = (eyeSpaceUp4/eyeSpaceUp4.w).xyz;
+		vec3 eyeSpaceUp = normalize(eyeSpaceUp4.xyz);
 		float cos_theta = dot(eyeSpaceNormal, eyeSpaceUp);
 		float theta = acos(cos_theta);
 		float f_inc = 0.0;
-		if (theta > 0.0 && theta < PI/2.0) {
+		if (theta >= 0.0 && theta <= PI/2.0) {
 			float n = noise1(gl_MultiTexCoord0);
-			f_inc = cos_theta + n;
+			f_inc = cos_theta;// + n;
 		}
 		
 		// calculate f_e (occlusion)
@@ -95,11 +95,16 @@ void main()
 		
 		// once we have fp, scale the y direction up in world space according to fp's value
 		vec4 worldSpaceVertex = InverseViewMatrix * eyeSpaceVertex;
+		//worldSpaceVertex = worldSpaceVertex/worldSpaceVertex.w;
 		float new_y = worldSpaceVertex.y + f_p * SnowAmount;
-		vec4 clipVertex = gl_ProjectionMatrix * ViewMatrix * vec4(worldSpaceVertex.x, new_y, worldSpaceVertex.z, worldSpaceVertex.w);
+		//vec3 newVertex = eyeSpaceVertex.xyz + f_p * SnowAmount * eyeSpaceUp;
+		eyeSpaceVertex = ViewMatrix * vec4(worldSpaceVertex.x, new_y, worldSpaceVertex.z, worldSpaceVertex.w);
+		//eyeSpaceVertex = eyeSpaceVertex/eyeSpaceVertex.w;
+		//vec4 clipVertex = gl_ProjectionMatrix * vec4(newVertex, 1.0);
+		vec4 clipVertex = gl_ProjectionMatrix * eyeSpaceVertex;
 		clipVertex = clipVertex/clipVertex.w;
-		EyespacePosition = clipVertex.xyz;
 		gl_Position = clipVertex;
+		EyespacePosition = eyeSpaceVertex.xyz;
 	} else {
 		gl_Position = ftransform();
 		EyespacePosition = vec3(gl_ModelViewMatrix * gl_Vertex);

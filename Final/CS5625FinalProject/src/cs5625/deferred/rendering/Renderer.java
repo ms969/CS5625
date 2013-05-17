@@ -133,7 +133,7 @@ public class Renderer
 	private int mShadowMode = 0;
 	
 	/* All of the shadow mapping parameters */
-	private float mBias = 0f;
+	private float mBias = 4.500001E-5f;
 	private int mBiasUniformLocation = -1;
 	
 	private int mShadowSampleWidth = 4;
@@ -146,9 +146,10 @@ public class Renderer
 	
 	/* TODO snow rendering parameters */
 	private boolean mRenderSnow = false;
-	private float mSnowAmount = 1f;
+	private float mSnowAmount = 0.1f;
 	
 	private int mRenderSnowUniformLocation = -1;
+	private int mTransposeInverseViewMatrixUniformLocation = -1;
 	private int mSnowOcclusionTextureLocation = GBuffer_FinalSceneIndex + 2;
 	private int mSnowMapWidthUniformLocation = -1;
 	private int mSnowMapHeightUniformLocation = -1;
@@ -319,8 +320,8 @@ public class Renderer
 				if (mRenderSnow) {
 					BlinnPhongMaterial.snowAmount = mSnowAmount;
 					BlinnPhongMaterial.occlMapTexture = mSnowOcclusionMapFBO.getDepthTexture();
-					BlinnPhongMaterial.snowMapWidth = mViewportWidth; //snowCamera.getWidth();
-					BlinnPhongMaterial.snowMapHeight = mViewportHeight; //snowCamera.getHeight();
+					BlinnPhongMaterial.snowMapWidth = /*mViewportWidth;*/ snowCamera.getWidth();
+					BlinnPhongMaterial.snowMapHeight = /*mViewportHeight;*/ snowCamera.getHeight();
 					
 					// set OcclMapMatrix uniform
 					Matrix4f snowProjection = snowCamera.getProjectionMatrix();
@@ -355,7 +356,7 @@ public class Renderer
 				computeGradientBuffer(gl);
 				
 				/* 3. Apply deferred lighting to the g-buffer. At this point, the opaque scene has been rendered. */
-				lightGBuffer(gl, camera, shadowCamera);
+				lightGBuffer(gl, camera, shadowCamera, snowCamera);
 	
 				/* 4. If we're supposed to preview one gbuffer texture, do that now. 
 				 *    Otherwise, envoke the final render pass (optional post-processing). */
@@ -502,8 +503,12 @@ public class Renderer
 			/* Swap the top and bottom, when we render from a perspective camera */
 			gl.glFrustum( fW, -fW, -fH, fH, zNear, zFar );
 		} else if (camera.getIsSnowOcclusionMapCamera()) {
-			GLU glu = GLU.createGLU(gl);
-			glu.gluOrtho2D(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2);
+			Matrix4f projection = camera.getProjectionMatrix();
+			float[] f = Util.fromMatrix4f(projection);
+			FloatBuffer fb = FloatBuffer.wrap(f);
+			gl.glLoadMatrixf(fb);
+			//GLU glu = GLU.createGLU(gl);
+			//glu.gluOrtho2D(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2);
 			//gl.glOrthof(-camera.getWidth()/2, camera.getWidth()/2, -camera.getHeight()/2, camera.getHeight()/2, zNear, zFar);
 		} else {
 			gl.glFrustum( -fW, fW, -fH, fH, zNear, zFar );
@@ -592,7 +597,7 @@ public class Renderer
 	 * @param gl The OpenGL state.
 	 * @param camera Camera from whose perspective we are rendering.
 	 */
-	private void lightGBuffer(GL2 gl, Camera camera, Camera shadowCamera) throws OpenGLException, ScenegraphException
+	private void lightGBuffer(GL2 gl, Camera camera, Camera shadowCamera, Camera snowCamera) throws OpenGLException, ScenegraphException
 	{
 		/* Need some lights, otherwise it will just be black! */
 		if (mLights.size() == 0)
@@ -700,32 +705,42 @@ public class Renderer
 		}
 		OpenGLException.checkOpenGLError(gl);
 		
-		/*if (snowCamera != null) {
+		gl.glUniform1i(mRenderSnowUniformLocation, (mRenderSnow ? 1 : 0));
+		if (snowCamera != null) {
 			// TODO: set any uniforms here
-			mSnowOcclusionMapFBO.getDepthTexture().bind(gl, mSnowOcclusionTextureLocation);
-			gl.glUniform1f(mSnowMapWidthUniformLocation, snowCamera.getWidth());
-			gl.glUniform1f(mSnowMapHeightUniformLocation, snowCamera.getHeight());
+//			mSnowOcclusionMapFBO.getDepthTexture().bind(gl, mSnowOcclusionTextureLocation);
+//			gl.glUniform1f(mSnowMapWidthUniformLocation, snowCamera.getWidth());
+//			gl.glUniform1f(mSnowMapHeightUniformLocation, snowCamera.getHeight());
+//			
+//			// set OcclMapMatrix uniform
+//			Matrix4f snowProjection = snowCamera.getProjectionMatrix();
+//			Matrix4f snowView = snowCamera.getViewMatrix();
+//			Matrix4f l = new Matrix4f();
+//			l.mul(snowProjection, snowView);
+//			//float f1[] = Util.fromMatrix4f(l);
+//			float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
+//			FloatBuffer fb = FloatBuffer.wrap(f1);
+//			gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, true, fb);
+//			
+//			// set the ViewMatrix uniform
+//			Matrix4f v = camera.getViewMatrix();
+//			//float f2[] = Util.fromMatrix4f(v);
+//			float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
+//			FloatBuffer fb2 = FloatBuffer.wrap(f2);
+//			gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, true, fb2);
+//			
 			
-			// set OcclMapMatrix uniform
-			Matrix4f snowProjection = snowCamera.getProjectionMatrix();
-			Matrix4f snowView = snowCamera.getViewMatrix();
-			Matrix4f l = new Matrix4f();
-			l.mul(snowProjection, snowView);
-			//float f1[] = Util.fromMatrix4f(l);
-			float f1[] = new float[]{l.m00, l.m01, l.m02, l.m03, l.m10, l.m11, l.m12, l.m13, l.m20, l.m21, l.m22, l.m23, l.m30, l.m31, l.m32, l.m33};
-			FloatBuffer fb = FloatBuffer.wrap(f1);
-			gl.glUniformMatrix4fv(mOcclMapMatrixUniformLocation, 1, true, fb);
 			
-			// set the ViewMatrix uniform
 			Matrix4f v = camera.getViewMatrix();
-			//float f2[] = Util.fromMatrix4f(v);
-			float f2[] = new float[]{v.m00, v.m01, v.m02, v.m03, v.m10, v.m11, v.m12, v.m13, v.m20, v.m21, v.m22, v.m23, v.m30, v.m31, v.m32, v.m33};
-			FloatBuffer fb2 = FloatBuffer.wrap(f2);
-			gl.glUniformMatrix4fv(mViewMatrixUniformLocation, 1, true, fb2);
+			Matrix4f ti_v = new Matrix4f();
+			ti_v.invert(v);
+			ti_v.transpose();
+			float f1[] = Util.fromMatrix4f(ti_v);
+			FloatBuffer fb1 = FloatBuffer.wrap(f1);
+			gl.glUniformMatrix4fv(mTransposeInverseViewMatrixUniformLocation, 1, false, fb1);
 			
-			gl.glUniform1i(mRenderSnowUniformLocation, (mRenderSnow ? 1 : 0));
-			gl.glUniform1f(mSnowAmountUniformLocation, mSnowAmount);
-		}*/
+//			gl.glUniform1f(mSnowAmountUniformLocation, mSnowAmount);
+		}
 		OpenGLException.checkOpenGLError(gl);
 
 		if (shadowCamera != null /*|| snowCamera != null*/) {
@@ -1286,12 +1301,13 @@ public class Renderer
 			mLightWidthUniformLocation = mUberShader.getUniformLocation(gl, "LightWidth");
 			
 			/* snow rendering uniforms */
-			/*mRenderSnowUniformLocation = mUberShader.getUniformLocation(gl, "RenderSnow");
-			mSnowMapWidthUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapWidth");
-			mSnowMapHeightUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapHeight");
-			mOcclMapMatrixUniformLocation = mUberShader.getUniformLocation(gl, "OcclMapMatrix");
-			mViewMatrixUniformLocation = mUberShader.getUniformLocation(gl, "ViewMatrix");
-			mSnowAmountUniformLocation = mUberShader.getUniformLocation(gl, "SnowAmount");*/
+			mRenderSnowUniformLocation = mUberShader.getUniformLocation(gl, "RenderSnow");
+			mTransposeInverseViewMatrixUniformLocation = mUberShader.getUniformLocation(gl, "TransposeInverseViewMatrix");
+//			mSnowMapWidthUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapWidth");
+//			mSnowMapHeightUniformLocation = mUberShader.getUniformLocation(gl, "SnowMapHeight");
+//			mOcclMapMatrixUniformLocation = mUberShader.getUniformLocation(gl, "OcclMapMatrix");
+//			mViewMatrixUniformLocation = mUberShader.getUniformLocation(gl, "ViewMatrix");
+//			mSnowAmountUniformLocation = mUberShader.getUniformLocation(gl, "SnowAmount");
 			
 			
 			/* Get the maximum number of lights the shader supports. */
@@ -1378,7 +1394,7 @@ public class Renderer
 			/* Create the dynamic cube map FBO, that will be used for the final offscreen rendering of the faces of each dynamic cube map object. */
 			mDynamicCubeMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.INT8, mDynamicCubeMapSize, mDynamicCubeMapSize, 1, true, false);
 			
-			//mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, (int)mViewportWidth, (int)mViewportHeight, GBuffer_Count, true, false);
+			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, mSnowCameraWidth, mSnowCameraHeight, GBuffer_Count, true, false);
 
 			/* Make sure nothing went wrong. */
 			OpenGLException.checkOpenGLError(gl);
@@ -1412,7 +1428,7 @@ public class Renderer
 		{
 			mGBufferFBO.releaseGPUResources(gl);
 			mShadowMapFBO.releaseGPUResources(gl);
-			mSnowOcclusionMapFBO.releaseGPUResources(gl);
+			//mSnowOcclusionMapFBO.releaseGPUResources(gl);
 		}
 		
 		/* Make a new gbuffer with the new size. */
@@ -1420,7 +1436,7 @@ public class Renderer
 		{
 			mGBufferFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, true);
 			mShadowMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
-			mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
+			//mSnowOcclusionMapFBO = new FramebufferObject(gl, Format.RGBA, Datatype.FLOAT16, width, height, GBuffer_Count, true, false);
 		}
 		catch (OpenGLException err)
 		{
