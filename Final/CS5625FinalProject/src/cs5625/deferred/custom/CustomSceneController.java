@@ -25,6 +25,14 @@ public class CustomSceneController extends SceneController {
 	private float mCameraLongitude = 50.0f, mCameraLatitude = -40.0f;
 	private float mCameraRadius = 15.0f;
 	
+	/* Keeps track of shadow camera's orbit position. */
+	private float mShadowCameraLongitude = -50.0f, mShadowCameraLatitude = -40.0f;
+	private float mShadowCameraRadius = 15.f;
+	
+	/* Snow camera's position */
+	private float mSnowCameraLongitude = 180f, mSnowCameraLatitude = -90f;
+	private final float SNOW_CAM_FRUSTUM_WIDTH = 15.0f, SNOW_CAM_FRUSTUM_HEIGHT = 15.0f, SNOW_CAM_HEIGHT = 15.0f;
+	
 	/* Used to calculate mouse deltas to orbit the camera in mouseDragged(). */ 
 	private Point mLastMouseDrag;
 	
@@ -115,8 +123,29 @@ public class CustomSceneController extends SceneController {
 			System.exit(-1);
 		}
 		
+		this.hasShadows = true;
+		
 		/* Initialize camera position. */
 		updateCamera();
+		updateShadowCamera();
+		
+		/* Set up snow camera */
+		/* Compose the "horizontal" and "vertical" rotations. */
+		Quat4f longitudeQuat = new Quat4f();
+		longitudeQuat.set(new AxisAngle4f(0.0f, 1.0f, 0.0f, mSnowCameraLongitude * (float)Math.PI / 180.0f));
+		
+		Quat4f latitudeQuat = new Quat4f();
+		latitudeQuat.set(new AxisAngle4f(1.0f, 0.0f, 0.0f, mSnowCameraLatitude * (float)Math.PI / 180.0f));
+		
+
+		mSnowCamera.getOrientation().mul(longitudeQuat, latitudeQuat);
+		
+		/* Set the camera's position so that it looks towards the origin. */
+		mSnowCamera.setPosition(new Point3f(0.0f, 0.0f, SNOW_CAM_HEIGHT));
+		Util.rotateTuple(mSnowCamera.getOrientation(), mSnowCamera.getPosition());
+		
+		mSnowCamera.setWidth(SNOW_CAM_FRUSTUM_WIDTH);
+		mSnowCamera.setHeight(SNOW_CAM_FRUSTUM_HEIGHT);
 	}
 	
 	/**
@@ -137,13 +166,36 @@ public class CustomSceneController extends SceneController {
 		mCamera.setPosition(new Point3f(0.0f, 0.0f, mCameraRadius));
 		Util.rotateTuple(mCamera.getOrientation(), mCamera.getPosition());
 	}
+	
+	/**
+	 * Updates the camera position and orientation based on orbit parameters.
+	 */
+	protected void updateShadowCamera()
+	{
+		/* Compose the "horizontal" and "vertical" rotations. */
+		Quat4f longitudeQuat = new Quat4f();
+		longitudeQuat.set(new AxisAngle4f(0.0f, 1.0f, 0.0f, mShadowCameraLongitude * (float)Math.PI / 180.0f));
+		
+		Quat4f latitudeQuat = new Quat4f();
+		latitudeQuat.set(new AxisAngle4f(1.0f, 0.0f, 0.0f, mShadowCameraLatitude * (float)Math.PI / 180.0f));
+
+		mShadowCamera.getOrientation().mul(longitudeQuat, latitudeQuat);
+		
+		/* Set the camera's position so that it looks towards the origin. */
+		mShadowCamera.setPosition(new Point3f(0.0f, 0.0f, mShadowCameraRadius));
+		Util.rotateTuple(mShadowCamera.getOrientation(), mShadowCamera.getPosition());
+		
+		mSceneRoot.findDescendantByName("CameraLight").setPosition(mShadowCamera.getPosition());
+	}
 
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent mouseWheel) {
 		/* Zoom in and out by the scroll wheel. */
-		mCameraRadius += mouseWheel.getUnitsToScroll();
-		updateCamera();
-		requiresRender();
+		if (!isShadowCamMode) {
+			mCameraRadius += mouseWheel.getUnitsToScroll();
+			updateCamera();
+			requiresRender();
+		}
 	}
 
 	@Override
@@ -161,7 +213,7 @@ public class CustomSceneController extends SceneController {
 		float deltaY = -(mouse.getPoint().y - mLastMouseDrag.y);
 		mLastMouseDrag = mouse.getPoint();
 		
-		if (mouse.getButton() == MouseEvent.BUTTON1)
+		if (!isShadowCamMode && !moveShadowCam)
 		{
 			/* Left mouse --> update camera. */
 			
@@ -189,8 +241,7 @@ public class CustomSceneController extends SceneController {
 		
 			updateCamera();
 		}
-		else
-		{
+		else if (mouse.getButton() == MouseEvent.BUTTON2) {
 			/* Other buttons -> rotate light cloud. */
 			Quat4f xquat = new Quat4f();
 			xquat.set(new AxisAngle4f(0.0f, 1.0f, 0.0f, deltaX * (float)Math.PI / 180.0f));
@@ -207,6 +258,35 @@ public class CustomSceneController extends SceneController {
 			result.mul(mLightCloud.getOrientation());
 			
 			mLightCloud.getOrientation().set(result);
+		}
+		else
+		{
+			
+			
+			
+			/* Update longitude, wrapping as necessary. */
+			mShadowCameraLongitude += deltaX;
+			
+			if (mShadowCameraLongitude > 360.0f)
+			{
+				mShadowCameraLongitude -= 360.0f;
+			}
+			else if (mShadowCameraLongitude < 0.0f)
+			{
+				mShadowCameraLongitude += 360.0f;
+			}
+			
+			/* Update latitude, clamping as necessary. */
+			if (Math.abs(mShadowCameraLatitude + deltaY) <= 89.0f)
+			{
+				mShadowCameraLatitude += deltaY;
+			}
+			else
+			{
+				mShadowCameraLatitude = 89.0f * Math.signum(mShadowCameraLatitude);
+			}
+		
+			updateShadowCamera();
 		}
 		
 		requiresRender();

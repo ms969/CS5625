@@ -701,8 +701,8 @@ vec3 shadeBlinnPhong(vec3 diffuse, vec3 specular, float exponent, vec3 position,
 		float f_p = -1.05 * f_inc / (-f_inc - 0.05);
 		//float f_p = f_inc;
 		// -1.2 * t / (-t-0.2)
-		//C = f_p * C_s + (1.0 - f_p) * C_n;
-		C = C_n;
+		C = f_p * C_s + (1.0 - f_p) * C_n;
+		//C = C_n;
 	} else {
 		C = lightColor * attenuation * (diffuse * ndotl + specular * pow_ndoth);
 	}

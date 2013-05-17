@@ -192,7 +192,7 @@ public class Camera extends SceneObject
 		return new Matrix4f(
 				2f/mWidth, 0f		 , 0f			  , 0f,
 				0f		 , 2f/mHeight, 0f			  , 0f,
-				0f		 , 0f		 , -2/(mFar-mNear), -(mFar+mNear)/(mFar-mNear),
+				0f		 , 0f		 , /*-2/(mFar-mNear)*/0f, /*-(mFar+mNear)/(mFar-mNear)*/0f,
 				0f		 , 0f		 , 0f			  , 1f);
 	}
 

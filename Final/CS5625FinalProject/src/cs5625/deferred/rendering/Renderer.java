@@ -320,8 +320,8 @@ public class Renderer
 				if (mRenderSnow) {
 					BlinnPhongMaterial.snowAmount = mSnowAmount;
 					BlinnPhongMaterial.occlMapTexture = mSnowOcclusionMapFBO.getDepthTexture();
-					BlinnPhongMaterial.snowMapWidth = /*mViewportWidth;*/ snowCamera.getWidth();
-					BlinnPhongMaterial.snowMapHeight = /*mViewportHeight;*/ snowCamera.getHeight();
+					BlinnPhongMaterial.snowMapWidth = mViewportWidth;// snowCamera.getWidth();
+					BlinnPhongMaterial.snowMapHeight = mViewportHeight;// snowCamera.getHeight();
 					
 					// set OcclMapMatrix uniform
 					Matrix4f snowProjection = snowCamera.getProjectionMatrix();
