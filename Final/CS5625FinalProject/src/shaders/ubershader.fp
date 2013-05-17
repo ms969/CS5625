@@ -20,6 +20,7 @@ const int COOKTORRANCE_MATERIAL_ID = 4;
 const int ISOTROPIC_WARD_MATERIAL_ID = 5;
 const int ANISOTROPIC_WARD_MATERIAL_ID = 6;
 const int REFLECTION_MATERIAL_ID = 7;
+const int BILLBOARD_MATERIAL_ID = 8;
 
 /* Some constant maximum number of lights which GLSL and Java have to agree on. */
 #define MAX_LIGHTS 40
@@ -662,6 +663,16 @@ vec3 shadeReflective(vec3 position, vec3 normal, int cubeMapIndex)
 	return sampleCubeMap(reflected, cubeMapIndex);
 }
 
+vec3 shadeBillboard(vec3 diffuse, vec3 position, vec3 normal, vec3 lightPosition, vec3 lightColor, vec3 lightAttenuation)
+{
+	vec3 lightDirection = normalize(lightPosition - position);
+	float ndotl = max(0.0, dot(normal, lightDirection));
+
+	float r = length(lightPosition - position);
+	float attenuation = 1.0 / dot(lightAttenuation, vec3(1.0, r, r * r));
+	return lightColor * attenuation * diffuse * ndotl + vec3(0.1,0.1,0.1);
+}
+
 
 void main()
 {
@@ -736,6 +747,11 @@ void main()
 		int cubeMapIndex = int(materialParams1.y);
 		for (int i = 0; i < NumLights; i++) {
 			gl_FragColor.rgb += shadeReflective(position, normal, cubeMapIndex);
+		}
+	} else if (materialID == BILLBOARD_MATERIAL_ID) {
+		for (int i = 0; i < NumLights; ++i)
+		{
+			gl_FragColor.rgb += shadeBillboard(diffuse, position, normal, LightPositions[i], LightColors[i], LightAttenuations[i]);
 		}
 	}
 	else
